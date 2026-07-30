@@ -56,6 +56,21 @@ export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean 
   useEffect(() => {
     if (picksLoaded) window.localStorage.setItem("homesports-picks", JSON.stringify(picks));
   }, [picks, picksLoaded]);
+  useEffect(() => {
+    const liveMatches = list.filter((match) => match.status === "running" && match.streams.length > 0);
+    document.querySelectorAll<HTMLElement>(".match.running").forEach((card, index) => {
+      card.querySelector(".card-watch-link")?.remove();
+      const stream = liveMatches[index]?.streams[0];
+      if (!stream) return;
+      const link = document.createElement("a");
+      link.className = "card-watch-link";
+      link.href = stream.url;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.textContent = `WATCH LIVE · ${stream.language.toUpperCase()} ↗`;
+      card.insertBefore(link, card.firstChild);
+    });
+  }, [list]);
   const savePick = (matchId: number, team: string) => setPicks((current) => ({ ...current, [matchId]: team }));
   const savedPicks = Object.keys(picks).length;
   return <div className="shell">
