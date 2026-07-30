@@ -72,7 +72,16 @@ export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }>
   };
   try {
     const groups = await Promise.all([request("running", "running"), request("upcoming", "upcoming"), request("past", "finished")]);
-    return { matches: groups.flat().sort((a, b) => b.importance - a.importance || +new Date(a.beginAt) - +new Date(b.beginAt)), demo: false };
+    const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
+    return {
+      matches: groups.flat().sort((a, b) => {
+        const statusDifference = statusRank[a.status] - statusRank[b.status];
+        if (statusDifference) return statusDifference;
+        if (a.status === "finished") return +new Date(b.beginAt) - +new Date(a.beginAt);
+        return b.importance - a.importance || +new Date(a.beginAt) - +new Date(b.beginAt);
+      }),
+      demo: false
+    };
   } catch (error) {
     console.error(error);
     return { matches: demo, demo: true };
