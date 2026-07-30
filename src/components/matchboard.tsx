@@ -23,6 +23,12 @@ function startsIn(value: string) {
 
 function StarRating({ value }: { value: number }) { return <span className={`stars stars-${value}`} aria-label={`${value} out of 5 importance stars`}>{"★".repeat(value)}<i>{"★".repeat(5 - value)}</i></span>; }
 
+function LiveStreams({ matches }: { matches: Match[] }) {
+  const live = matches.filter((match) => match.status === "running" && match.streams.length > 0);
+  if (!live.length) return null;
+  return <section className="live-streams"><span><b /> WATCH LIVE</span>{live.flatMap((match) => match.streams.map((stream) => <a href={stream.url} target="_blank" rel="noreferrer" key={`${match.id}-${stream.url}`}>{match.name} · {stream.language.toUpperCase()} ↗</a>))}</section>;
+}
+
 export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean }) {
   const [tab, setTab] = useState<MatchStatus | "all">("all");
   const [minimum, setMinimum] = useState(1);
@@ -54,6 +60,7 @@ export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean 
   const savedPicks = Object.keys(picks).length;
   return <div className="shell">
     <header><a className="brand" href="/"><span>HOME</span>SPORTS</a><p>League of Legends esports, ranked by what matters.</p><a className="calendar-link" href="/calendar">CALENDAR</a><div className="pick-count">PICK’EM <b>{savedPicks}</b></div><div className="pulse"><b /> LIVE DATA</div></header>
+    <LiveStreams matches={matches} />
     {demo && <aside>Demo data is shown. Add <code>PANDASCORE_API_KEY</code> to <code>.env.local</code> to load the live worldwide schedule.</aside>}
     <section className="hero"><div><span className="eyebrow">MATCH INTELLIGENCE</span><h1>The games worth<br /><em>watching.</em></h1></div><p>Every LoL competition in one board. Our importance rating brings international clashes, playoffs, and top-tier series to the surface.</p></section>
     <nav className="filters" aria-label="Match filters"><div className="filter-left"><div className="match-tabs">{tabs.map((item) => <button className={tab === item.status ? "selected" : ""} onClick={() => setTab(item.status)} key={item.status}>{item.label}</button>)}</div><div className="league-filter"><span>LEAGUES</span><div className="league-chips"><button className={league === "all" ? "league-chip selected" : "league-chip"} onClick={() => setLeague("all")}>All{liveLeagues.size ? <i>{liveLeagues.size} live</i> : null}</button>{priorityLeagues.map((name) => <button className={league === name ? "league-chip selected" : "league-chip"} onClick={() => setLeague(name)} key={name}>{liveLeagues.has(name) && <b className="live-dot" />}{name}</button>)}{showMoreLeagues && otherLeagues.map((name) => <button className={league === name ? "league-chip selected" : "league-chip"} onClick={() => setLeague(name)} key={name}>{liveLeagues.has(name) && <b className="live-dot" />}{name}</button>)}{otherLeagues.length > 0 && <button className="more-leagues" onClick={() => setShowMoreLeagues((shown) => !shown)}>{showMoreLeagues ? "Less leagues −" : `More leagues +${otherLeagues.length}`}</button>}</div></div></div><label className="importance-filter">MIN. IMPORTANCE <select value={minimum} onChange={(event) => setMinimum(Number(event.target.value))}>{[1,2,3,4,5].map((star) => <option key={star} value={star}>{star} ★</option>)}</select></label></nav>
