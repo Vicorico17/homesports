@@ -1,0 +1,18 @@
+.filters { align-items:flex-start; }
+.filter-left { display:flex; flex:1; flex-direction:column; gap:13px; min-width:0; }
+.match-tabs, .league-chips { display:flex; flex-wrap:wrap; gap:5px; }
+.league-filter { display:flex; align-items:flex-start; gap:12px; }
+.league-filter > span { color:var(--dim); font-size:10px; letter-spacing:1px; padding-top:9px; }
+.league-chip, .more-leagues { padding:7px 9px; border:1px solid #343531; border-radius:3px; color:#bab9af; font-size:11px; }
+.league-chip.selected { color:#101110; background:var(--lime); border-color:var(--lime); }
+.league-chip i { color:var(--orange); font-size:9px; font-style:normal; margin-left:5px; }
+.league-chip.selected i { color:#252b19; }
+.live-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--orange); margin:0 5px 1px 0; }
+.more-leagues { color:var(--lime); border-color:#566348; }
+.importance-filter { margin-top:0; padding-top:1px; white-space:nowrap; }
+
+@media (max-width:700px) {
+  .league-filter { display:block; }
+  .league-filter > span { display:block; padding:0 0 7px; }
+  .importance-filter { margin-top:15px; }
+}
