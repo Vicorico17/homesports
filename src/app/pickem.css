@@ -1,0 +1,12 @@
+.pick-count { color:var(--lime); font-size:10px; letter-spacing:1px; white-space:nowrap; }
+.pick-count b { background:var(--lime); color:#101110; padding:3px 6px; border-radius:10px; margin-left:4px; }
+.pick-row { display:flex; align-items:center; gap:7px; margin-top:14px; padding-top:12px; border-top:1px solid #2a2b28; }
+.pick-row > span { color:var(--dim); font-size:10px; letter-spacing:1px; margin-right:auto; }
+.pick-row button { padding:5px 8px; border:1px solid #3a3b36; border-radius:3px; color:#c9c9c1; font-size:10px; max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pick-row button:hover, .pick-row button.picked { border-color:var(--lime); color:#111; background:var(--lime); font-weight:bold; }
+
+@media (max-width:700px) {
+  .pick-count { display:none; }
+  .pick-row { flex-wrap:wrap; }
+  .pick-row > span { width:100%; }
+}
