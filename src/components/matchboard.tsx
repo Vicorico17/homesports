@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Match, MatchStatus } from "@/lib/matches";
 
-const tabs: { label: string; status: MatchStatus | "all" }[] = [{ label: "All matches", status: "all" }, { label: "Live", status: "running" }, { label: "Upcoming", status: "upcoming" }, { label: "Results", status: "finished" }];
+const tabs: { label: string; status: MatchStatus | "all" }[] = [{ label: "All matches", status: "all" }, { label: "Live", status: "running" }, { label: "Upcoming", status: "upcoming" }];
 const popularLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
 
 function timeLabel(value: string, status: MatchStatus) {
@@ -21,7 +21,7 @@ function startsIn(value: string) {
   return `${Math.floor(hours / 24)}D ${hours % 24}H`;
 }
 
-function StarRating({ value }: { value: number }) { return <span className="stars" aria-label={`${value} out of 5 importance stars`}>{"★".repeat(value)}<i>{"★".repeat(5 - value)}</i></span>; }
+function StarRating({ value }: { value: number }) { return <span className={`stars stars-${value}`} aria-label={`${value} out of 5 importance stars`}>{"★".repeat(value)}<i>{"★".repeat(5 - value)}</i></span>; }
 
 export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean }) {
   const [tab, setTab] = useState<MatchStatus | "all">("all");

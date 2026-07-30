@@ -77,7 +77,7 @@ export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }>
   if (!token) return { matches: demo, demo: true };
   const request = async (path: string, status: MatchStatus) => {
     const sort = path === "past" ? "-begin_at" : "begin_at";
-    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=50`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
+    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
     if (!response.ok) throw new Error(`PandaScore returned ${response.status}`);
     return ((await response.json()) as PandaMatch[]).map((match) => normalize(match, status));
   };
@@ -89,7 +89,7 @@ export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }>
         const statusDifference = statusRank[a.status] - statusRank[b.status];
         if (statusDifference) return statusDifference;
         if (a.status === "finished") return +new Date(b.beginAt) - +new Date(a.beginAt);
-        return b.importance - a.importance || +new Date(a.beginAt) - +new Date(b.beginAt);
+        return +new Date(a.beginAt) - +new Date(b.beginAt);
       }),
       demo: false
     };
