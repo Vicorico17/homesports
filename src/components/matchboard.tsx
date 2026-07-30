@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Match, MatchStatus } from "@/lib/matches";
 
 const tabs: { label: string; status: MatchStatus | "all" }[] = [{ label: "All matches", status: "all" }, { label: "Live", status: "running" }, { label: "Upcoming", status: "upcoming" }];
-const popularLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
+const popularLeagues = ["LCK", "LPL", "LEC", "LCS", "LFL", "Prime League 1st Division"];
 
 function timeLabel(value: string, status: MatchStatus) {
   if (status === "running") return "LIVE NOW";

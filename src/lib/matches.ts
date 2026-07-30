@@ -28,6 +28,7 @@ type PandaMatch = {
 };
 
 const topLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
+const selectedLeagues = new Set(["LCK", "LPL", "LEC", "LCS", "LFL", "Prime League 1st Division"]);
 const international = ["world championship", "worlds", "mid-season invitational", "msi", "first stand", "esports world cup"];
 const secondary = ["challengers", "academy", "nacl", "erl", "prime league", "lfl", "superliga", "cblol academy"];
 
@@ -85,7 +86,7 @@ export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }>
     const groups = await Promise.all([request("running", "running"), request("upcoming", "upcoming"), request("past", "finished")]);
     const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
     return {
-      matches: groups.flat().sort((a, b) => {
+      matches: groups.flat().filter((match) => selectedLeagues.has(match.league)).sort((a, b) => {
         const statusDifference = statusRank[a.status] - statusRank[b.status];
         if (statusDifference) return statusDifference;
         if (a.status === "finished") return +new Date(b.beginAt) - +new Date(a.beginAt);
