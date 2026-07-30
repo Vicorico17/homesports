@@ -9,6 +9,8 @@ export type Match = {
   tournament: string;
   tournamentId: number;
   hasBracket: boolean;
+  streams: { url: string; language: string; official: boolean }[];
+  rescheduled: boolean;
   serie: string;
   opponents: { name: string; imageUrl?: string | null; score?: number }[];
   bestOf: number;
@@ -21,6 +23,8 @@ type PandaMatch = {
   league?: { name?: string }; tournament?: { id?: number; name?: string; has_bracket?: boolean }; serie?: { full_name?: string; name?: string };
   opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[];
   results?: { score?: number; team_id?: number }[];
+  rescheduled?: boolean;
+  streams_list?: { raw_url?: string; language?: string; official?: boolean }[];
 };
 
 const topLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
@@ -52,6 +56,8 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
     tournament: match.tournament?.name ?? "",
     tournamentId: match.tournament?.id ?? match.id,
     hasBracket: match.tournament?.has_bracket ?? false,
+    streams: (match.streams_list ?? []).flatMap((stream) => stream.raw_url ? [{ url: stream.raw_url, language: stream.language ?? "stream", official: stream.official ?? false }] : []),
+    rescheduled: match.rescheduled ?? false,
     serie: match.serie?.full_name ?? match.serie?.name ?? "",
     bestOf: match.number_of_games || 1,
     importance: stars,
@@ -61,9 +67,9 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
 }
 
 const demo: Match[] = [
-  { id: 1, status: "running", beginAt: new Date().toISOString(), name: "T1 vs Gen.G", league: "LCK", tournament: "Season Playoffs", tournamentId: 1, hasBracket: true, serie: "LCK 2026", bestOf: 5, importance: 4, importanceReason: "Top-league playoffs", opponents: [{ name: "T1", score: 1 }, { name: "Gen.G", score: 1 }] },
-  { id: 2, status: "upcoming", beginAt: new Date(Date.now() + 7_200_000).toISOString(), name: "G2 Esports vs Karmine Corp", league: "LEC", tournament: "Summer Split", tournamentId: 2, hasBracket: false, serie: "LEC 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "G2 Esports" }, { name: "Karmine Corp" }] },
-  { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "Bilibili Gaming", score: 2 }, { name: "Top Esports", score: 0 }] }
+  { id: 1, status: "running", beginAt: new Date().toISOString(), name: "T1 vs Gen.G", league: "LCK", tournament: "Season Playoffs", tournamentId: 1, hasBracket: true, streams: [], rescheduled: false, serie: "LCK 2026", bestOf: 5, importance: 4, importanceReason: "Top-league playoffs", opponents: [{ name: "T1", score: 1 }, { name: "Gen.G", score: 1 }] },
+  { id: 2, status: "upcoming", beginAt: new Date(Date.now() + 7_200_000).toISOString(), name: "G2 Esports vs Karmine Corp", league: "LEC", tournament: "Summer Split", tournamentId: 2, hasBracket: false, streams: [], rescheduled: false, serie: "LEC 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "G2 Esports" }, { name: "Karmine Corp" }] },
+  { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "Bilibili Gaming", score: 2 }, { name: "Top Esports", score: 0 }] }
 ];
 
 export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }> {
