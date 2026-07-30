@@ -1,1 +1,2 @@
 .live-streams { display:none; }.card-watch-link { display:block; margin:-17px -17px 13px; padding:9px 10px; background:var(--lime); color:#111; border-radius:3px 3px 0 0; text-align:center; text-decoration:none; font-size:10px; font-weight:bold; letter-spacing:1px; }.card-watch-link:hover { background:#d7ff9d; }
+.league-logo { width:16px; height:16px; object-fit:contain; vertical-align:middle; margin:-2px 5px 0 0; }

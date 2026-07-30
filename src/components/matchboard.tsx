@@ -71,6 +71,19 @@ export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean 
       card.insertBefore(link, card.firstChild);
     });
   }, [list]);
+  useEffect(() => {
+    document.querySelectorAll<HTMLElement>(".match").forEach((card, index) => {
+      card.querySelector(".league-logo")?.remove();
+      const imageUrl = list[index]?.leagueImageUrl;
+      const target = card.querySelector(".meta span:last-child");
+      if (!imageUrl || !target) return;
+      const logo = document.createElement("img");
+      logo.className = "league-logo";
+      logo.src = imageUrl;
+      logo.alt = "";
+      target.insertBefore(logo, target.firstChild);
+    });
+  }, [list]);
   const savePick = (matchId: number, team: string) => setPicks((current) => ({ ...current, [matchId]: team }));
   const savedPicks = Object.keys(picks).length;
   return <div className="shell">
