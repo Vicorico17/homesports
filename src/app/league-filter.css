@@ -10,6 +10,7 @@
 .live-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--orange); margin:0 5px 1px 0; }
 .more-leagues { color:var(--lime); border-color:#566348; }
 .importance-filter { margin-top:0; padding-top:1px; white-space:nowrap; }
+.calendar-link { color:var(--lime); font-size:10px; letter-spacing:1px; text-decoration:none; }
 
 @media (max-width:700px) {
   .league-filter { display:block; }

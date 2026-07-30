@@ -4,6 +4,7 @@ import "./league-filter.css";
 import "./countdown.css";
 import "./bracket.css";
 import "./importance-frames.css";
+import "./calendar.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "HomeSports — LoL Esports", description: "The League of Legends matchboard that puts the big series first." };

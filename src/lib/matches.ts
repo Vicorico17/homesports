@@ -28,7 +28,6 @@ type PandaMatch = {
 };
 
 const topLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
-const selectedLeagues = new Set(["LCK", "LPL", "LEC", "LCS", "LFL", "Prime League 1st Division"]);
 const international = ["world championship", "worlds", "mid-season invitational", "msi", "first stand", "esports world cup"];
 const secondary = ["challengers", "academy", "nacl", "erl", "prime league", "lfl", "superliga", "cblol academy"];
 
@@ -76,17 +75,17 @@ const demo: Match[] = [
 export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }> {
   const token = process.env.PANDASCORE_API_KEY;
   if (!token) return { matches: demo, demo: true };
-  const request = async (path: string, status: MatchStatus) => {
+  const request = async (path: string, status: MatchStatus, page = 1) => {
     const sort = path === "past" ? "-begin_at" : "begin_at";
-    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
+    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
     if (!response.ok) throw new Error(`PandaScore returned ${response.status}`);
     return ((await response.json()) as PandaMatch[]).map((match) => normalize(match, status));
   };
   try {
-    const groups = await Promise.all([request("running", "running"), request("upcoming", "upcoming"), request("past", "finished")]);
+    const groups = await Promise.all([request("running", "running"), request("upcoming", "upcoming", 1), request("upcoming", "upcoming", 2)]);
     const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
     return {
-      matches: groups.flat().filter((match) => selectedLeagues.has(match.league)).sort((a, b) => {
+      matches: groups.flat().sort((a, b) => {
         const statusDifference = statusRank[a.status] - statusRank[b.status];
         if (statusDifference) return statusDifference;
         if (a.status === "finished") return +new Date(b.beginAt) - +new Date(a.beginAt);
