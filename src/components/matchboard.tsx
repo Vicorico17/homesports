@@ -98,7 +98,7 @@ export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean 
           if (winner === match.opponents[teamIndex]?.name) dot.className = "won";
           dots.append(dot);
         });
-        team.append(dots);
+        team.insertBefore(dots, team.querySelector("strong"));
       });
     });
   }, [list]);
