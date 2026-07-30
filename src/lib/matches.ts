@@ -17,8 +17,8 @@ export type Match = {
 type PandaMatch = {
   id: number; status: string; begin_at: string; name: string; number_of_games: number;
   league?: { name?: string }; tournament?: { name?: string }; serie?: { full_name?: string; name?: string };
-  opponents?: { opponent?: { name?: string; image_url?: string | null } }[];
-  results?: { score?: number }[];
+  opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[];
+  results?: { score?: number; team_id?: number }[];
 };
 
 const topLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
@@ -38,7 +38,7 @@ export function rateMatch(match: PandaMatch) {
 }
 
 function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
-  const scored = match.results ?? [];
+  const scoresByTeam = new Map((match.results ?? []).map((result) => [result.team_id, result.score]));
   const { stars, reason } = rateMatch(match);
   return {
     id: match.id,
@@ -51,7 +51,7 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
     bestOf: match.number_of_games || 1,
     importance: stars,
     importanceReason: reason,
-    opponents: (match.opponents ?? []).map(({ opponent }, index) => ({ name: opponent?.name ?? "TBD", imageUrl: opponent?.image_url, score: scored[index]?.score }))
+    opponents: (match.opponents ?? []).map(({ opponent }) => ({ name: opponent?.name ?? "TBD", imageUrl: opponent?.image_url, score: opponent?.id ? scoresByTeam.get(opponent.id) : undefined }))
   };
 }
 
@@ -65,7 +65,8 @@ export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }>
   const token = process.env.PANDASCORE_API_KEY;
   if (!token) return { matches: demo, demo: true };
   const request = async (path: string, status: MatchStatus) => {
-    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=begin_at&per_page=50`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
+    const sort = path === "past" ? "-begin_at" : "begin_at";
+    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=50`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
     if (!response.ok) throw new Error(`PandaScore returned ${response.status}`);
     return ((await response.json()) as PandaMatch[]).map((match) => normalize(match, status));
   };

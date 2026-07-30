@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Match, MatchStatus } from "@/lib/matches";
 
 const tabs: { label: string; status: MatchStatus | "all" }[] = [{ label: "All matches", status: "all" }, { label: "Live", status: "running" }, { label: "Upcoming", status: "upcoming" }, { label: "Results", status: "finished" }];
@@ -18,6 +18,11 @@ export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean 
   const [tab, setTab] = useState<MatchStatus | "all">("all");
   const [minimum, setMinimum] = useState(1);
   const list = useMemo(() => matches.filter((match) => (tab === "all" || match.status === tab) && match.importance >= minimum), [matches, tab, minimum]);
+  useEffect(() => {
+    if (demo) return;
+    const refresh = window.setInterval(() => window.location.reload(), 60_000);
+    return () => window.clearInterval(refresh);
+  }, [demo]);
   return <div className="shell">
     <header><a className="brand" href="/"><span>HOME</span>SPORTS</a><p>League of Legends esports, ranked by what matters.</p><div className="pulse"><b /> LIVE DATA</div></header>
     {demo && <aside>Demo data is shown. Add <code>PANDASCORE_API_KEY</code> to <code>.env.local</code> to load the live worldwide schedule.</aside>}
