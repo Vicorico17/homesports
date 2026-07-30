@@ -12,6 +12,7 @@ export type Match = {
   hasBracket: boolean;
   streams: { url: string; language: string; official: boolean }[];
   rescheduled: boolean;
+  mapWinners: string[];
   serie: string;
   opponents: { name: string; imageUrl?: string | null; score?: number }[];
   bestOf: number;
@@ -26,6 +27,7 @@ type PandaMatch = {
   results?: { score?: number; team_id?: number }[];
   rescheduled?: boolean;
   streams_list?: { raw_url?: string; language?: string; official?: boolean }[];
+  games?: { position: number; status: string; winner?: { id?: number | null } }[];
 };
 
 const topLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
@@ -47,6 +49,7 @@ export function rateMatch(match: PandaMatch) {
 function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
   const scoresByTeam = new Map((match.results ?? []).map((result) => [result.team_id, result.score]));
   const rawOpponents = match.opponents ?? [];
+  const teamNames = new Map(rawOpponents.map(({ opponent }) => [opponent?.id, opponent?.name]));
   const { stars, reason } = rateMatch(match);
   return {
     id: match.id,
@@ -60,6 +63,10 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
     hasBracket: match.tournament?.has_bracket ?? false,
     streams: (match.streams_list ?? []).flatMap((stream) => stream.raw_url ? [{ url: stream.raw_url, language: stream.language ?? "stream", official: stream.official ?? false }] : []),
     rescheduled: match.rescheduled ?? false,
+    mapWinners: (match.games ?? []).sort((a, b) => a.position - b.position).flatMap((game) => {
+      const name = game.winner?.id ? teamNames.get(game.winner.id) : undefined;
+      return game.status === "finished" && name ? [name] : [];
+    }),
     serie: match.serie?.full_name ?? match.serie?.name ?? "",
     bestOf: match.number_of_games || 1,
     importance: stars,
@@ -69,9 +76,9 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
 }
 
 const demo: Match[] = [
-  { id: 1, status: "running", beginAt: new Date().toISOString(), name: "T1 vs Gen.G", league: "LCK", tournament: "Season Playoffs", tournamentId: 1, hasBracket: true, streams: [], rescheduled: false, serie: "LCK 2026", bestOf: 5, importance: 4, importanceReason: "Top-league playoffs", opponents: [{ name: "T1", score: 1 }, { name: "Gen.G", score: 1 }] },
-  { id: 2, status: "upcoming", beginAt: new Date(Date.now() + 7_200_000).toISOString(), name: "G2 Esports vs Karmine Corp", league: "LEC", tournament: "Summer Split", tournamentId: 2, hasBracket: false, streams: [], rescheduled: false, serie: "LEC 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "G2 Esports" }, { name: "Karmine Corp" }] },
-  { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "Bilibili Gaming", score: 2 }, { name: "Top Esports", score: 0 }] }
+  { id: 1, status: "running", beginAt: new Date().toISOString(), name: "T1 vs Gen.G", league: "LCK", tournament: "Season Playoffs", tournamentId: 1, hasBracket: true, streams: [], rescheduled: false, mapWinners: ["T1", "Gen.G"], serie: "LCK 2026", bestOf: 5, importance: 4, importanceReason: "Top-league playoffs", opponents: [{ name: "T1", score: 1 }, { name: "Gen.G", score: 1 }] },
+  { id: 2, status: "upcoming", beginAt: new Date(Date.now() + 7_200_000).toISOString(), name: "G2 Esports vs Karmine Corp", league: "LEC", tournament: "Summer Split", tournamentId: 2, hasBracket: false, streams: [], rescheduled: false, mapWinners: [], serie: "LEC 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "G2 Esports" }, { name: "Karmine Corp" }] },
+  { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, mapWinners: ["Bilibili Gaming", "Bilibili Gaming"], serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "Bilibili Gaming", score: 2 }, { name: "Top Esports", score: 0 }] }
 ];
 
 export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }> {

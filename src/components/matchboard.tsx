@@ -84,6 +84,24 @@ export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean 
       target.insertBefore(logo, target.firstChild);
     });
   }, [list]);
+  useEffect(() => {
+    document.querySelectorAll<HTMLElement>(".match").forEach((card, index) => {
+      card.querySelectorAll(".map-dots").forEach((dots) => dots.remove());
+      const match = list[index];
+      if (!match || match.bestOf < 3 || !match.mapWinners.length) return;
+      card.querySelectorAll<HTMLElement>(".team").forEach((team, teamIndex) => {
+        const dots = document.createElement("span");
+        dots.className = "map-dots";
+        dots.setAttribute("aria-label", "Map winners in order");
+        match.mapWinners.forEach((winner) => {
+          const dot = document.createElement("i");
+          if (winner === match.opponents[teamIndex]?.name) dot.className = "won";
+          dots.append(dot);
+        });
+        team.append(dots);
+      });
+    });
+  }, [list]);
   const savePick = (matchId: number, team: string) => setPicks((current) => ({ ...current, [matchId]: team }));
   const savedPicks = Object.keys(picks).length;
   return <div className="shell">
