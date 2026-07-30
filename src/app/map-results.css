@@ -1,4 +1,0 @@
-.map-results { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:13px; padding-top:12px; border-top:1px solid #2a2b28; }
-.map-results > span { color:var(--dim); font-size:10px; letter-spacing:1px; margin-right:auto; }
-.map-results b { color:#d7d7cd; font-size:10px; }
-.map-results i { color:var(--lime); font-style:normal; margin-left:3px; }
