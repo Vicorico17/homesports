@@ -6,6 +6,7 @@ export type Match = {
   beginAt: string;
   name: string;
   league: string;
+  leagueImageUrl?: string | null;
   tournament: string;
   tournamentId: number;
   hasBracket: boolean;
@@ -20,7 +21,7 @@ export type Match = {
 
 type PandaMatch = {
   id: number; status: string; begin_at: string; name: string; number_of_games: number;
-  league?: { name?: string }; tournament?: { id?: number; name?: string; has_bracket?: boolean }; serie?: { full_name?: string; name?: string };
+  league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; has_bracket?: boolean }; serie?: { full_name?: string; name?: string };
   opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[];
   results?: { score?: number; team_id?: number }[];
   rescheduled?: boolean;
@@ -53,6 +54,7 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
     beginAt: match.begin_at,
     name: match.name,
     league: match.league?.name ?? "League of Legends",
+    leagueImageUrl: match.league?.image_url,
     tournament: match.tournament?.name ?? "",
     tournamentId: match.tournament?.id ?? match.id,
     hasBracket: match.tournament?.has_bracket ?? false,
