@@ -29,7 +29,8 @@ function LiveStreams({ matches }: { matches: Match[] }) {
   return <section className="live-streams"><span><b /> WATCH LIVE</span>{live.flatMap((match) => match.streams.map((stream) => <a href={stream.url} target="_blank" rel="noreferrer" key={`${match.id}-${stream.url}`}>{match.name} · {stream.language.toUpperCase()} ↗</a>))}</section>;
 }
 
-export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean }) {
+export function Matchboard({ matches: initialMatches, demo }: { matches: Match[]; demo: boolean }) {
+  const [matches, setMatches] = useState(initialMatches);
   const [tab, setTab] = useState<MatchStatus | "all">("all");
   const [minimum, setMinimum] = useState(1);
   const [league, setLeague] = useState("all");
@@ -43,7 +44,11 @@ export function Matchboard({ matches, demo }: { matches: Match[]; demo: boolean 
   const list = useMemo(() => matches.filter((match) => (tab === "all" || match.status === tab) && (league === "all" || match.league === league) && match.importance >= minimum), [matches, tab, league, minimum]);
   useEffect(() => {
     if (demo) return;
-    const refresh = window.setInterval(() => window.location.reload(), 60_000);
+    const refresh = window.setInterval(() => {
+      fetch("/api/matches").then((response) => response.ok ? response.json() : null).then((data) => {
+        if (data?.matches) setMatches(data.matches);
+      }).catch(() => undefined);
+    }, 30_000);
     return () => window.clearInterval(refresh);
   }, [demo]);
   useEffect(() => {

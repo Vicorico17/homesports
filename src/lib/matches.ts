@@ -86,7 +86,7 @@ export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }>
   if (!token) return { matches: demo, demo: true };
   const request = async (path: string, status: MatchStatus, page = 1) => {
     const sort = path === "past" ? "-begin_at" : "begin_at";
-    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
+    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 30 } });
     if (!response.ok) throw new Error(`PandaScore returned ${response.status}`);
     return ((await response.json()) as PandaMatch[]).map((match) => normalize(match, status));
   };
