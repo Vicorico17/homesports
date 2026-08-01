@@ -81,12 +81,12 @@ const demo: Match[] = [
   { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, mapWinners: ["Bilibili Gaming", "Bilibili Gaming"], serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "Bilibili Gaming", score: 2 }, { name: "Top Esports", score: 0 }] }
 ];
 
-export async function getMatches(): Promise<{ matches: Match[]; demo: boolean }> {
+export async function getMatches(fresh = false): Promise<{ matches: Match[]; demo: boolean }> {
   const token = process.env.PANDASCORE_API_KEY;
   if (!token) return { matches: demo, demo: true };
   const request = async (path: string, status: MatchStatus, page = 1) => {
     const sort = path === "past" ? "-begin_at" : "begin_at";
-    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 30 } });
+    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, fresh ? { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" } : { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 30 } });
     if (!response.ok) throw new Error(`PandaScore returned ${response.status}`);
     return ((await response.json()) as PandaMatch[]).map((match) => normalize(match, status));
   };

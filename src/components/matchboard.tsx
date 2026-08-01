@@ -44,11 +44,13 @@ export function Matchboard({ matches: initialMatches, demo }: { matches: Match[]
   const list = useMemo(() => matches.filter((match) => (tab === "all" || match.status === tab) && (league === "all" || match.league === league) && match.importance >= minimum), [matches, tab, league, minimum]);
   useEffect(() => {
     if (demo) return;
-    const refresh = window.setInterval(() => {
+    const refreshScores = () => {
       fetch("/api/matches").then((response) => response.ok ? response.json() : null).then((data) => {
         if (data?.matches) setMatches(data.matches);
       }).catch(() => undefined);
-    }, 30_000);
+    };
+    refreshScores();
+    const refresh = window.setInterval(refreshScores, 30_000);
     return () => window.clearInterval(refresh);
   }, [demo]);
   useEffect(() => {
