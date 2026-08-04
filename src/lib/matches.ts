@@ -85,17 +85,18 @@ async function addPreMatchOdds(matches: Match[]) {
   if (!apiKey) return matches;
   const bookmakers = process.env.ODDS_BOOKMAKERS ?? "Bet365,Unibet";
   const maxEvents = Math.max(1, Math.min(10, Number(process.env.ODDS_MAX_EVENTS ?? 10)));
-  const upcoming = matches.filter((match) => match.status === "upcoming" && match.opponents.length === 2);
-  if (!upcoming.length) return matches;
+  const eligible = matches.filter((match) => (match.status === "upcoming" || match.status === "running") && match.opponents.length === 2);
+  if (!eligible.length) return matches;
 
   try {
-    const eventsResponse = await fetch(`https://api.odds-api.io/v3/events?apiKey=${apiKey}&sport=esports&status=pending&limit=100`, { next: { revalidate: 300 } });
-    if (!eventsResponse.ok) throw new Error(`Odds API events returned ${eventsResponse.status}`);
-    const events = (await eventsResponse.json()) as { id: number; home: string; away: string; date: string }[];
+    const eventResponses = await Promise.all(["pending", "live"].map((status) => fetch(`https://api.odds-api.io/v3/events?apiKey=${apiKey}&sport=esports&status=${status}&limit=100`, { next: { revalidate: 300 } })));
+    if (eventResponses.some((response) => !response.ok)) throw new Error("Odds API events request failed");
+    const events = (await Promise.all(eventResponses.map((response) => response.json())))
+      .flat() as { id: number; home: string; away: string; date: string }[];
     const matchesById = new Map(matches.map((match) => [match.id, match]));
     const matchedEvents = events.flatMap((event) => {
       const eventTeams = [oddsName(event.home), oddsName(event.away)];
-      const match = upcoming.find((candidate) => {
+        const match = eligible.find((candidate) => {
         const teams = candidate.opponents.slice(0, 2).map((team) => oddsName(team.name));
         const sameTeams = teams.every((team) => eventTeams.some((eventTeam) => eventTeam.includes(team) || team.includes(eventTeam)));
         const closeStart = Math.abs(new Date(candidate.beginAt).getTime() - new Date(event.date).getTime()) < 12 * 60 * 60 * 1000;
