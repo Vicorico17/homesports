@@ -5,6 +5,9 @@
 .odds-book { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:7px; align-items:center; min-width:0; padding:7px 0; }
 .odds-book small { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; color:#c9cbc1; font-size:10px; }
 .odds-book b { color:var(--lime); font-size:14px; letter-spacing:-.2px; }
+.odds-row { display:contents; }
+.team { grid-template-columns:30px minmax(0,1fr) auto auto; }
+.team-odd { color:var(--lime); font-size:13px; font-weight:bold; letter-spacing:-.2px; }
 
 @media (max-width:700px) {
   .pick-row { flex-wrap:wrap; }
