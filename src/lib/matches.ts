@@ -18,6 +18,7 @@ export type Match = {
   bestOf: number;
   importance: number;
   importanceReason: string;
+  odds?: { bookmaker: string; home?: number; away?: number; updatedAt?: string }[];
 };
 
 type PandaMatch = {
@@ -75,6 +76,59 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
   };
 }
 
+function oddsName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+async function addPreMatchOdds(matches: Match[]) {
+  const apiKey = process.env.ODDS_API_KEY;
+  if (!apiKey) return matches;
+  const bookmakers = process.env.ODDS_BOOKMAKERS ?? "Bet365,Unibet";
+  const maxEvents = Math.max(1, Math.min(10, Number(process.env.ODDS_MAX_EVENTS ?? 10)));
+  const upcoming = matches.filter((match) => match.status === "upcoming" && match.opponents.length === 2);
+  if (!upcoming.length) return matches;
+
+  try {
+    const eventsResponse = await fetch(`https://api.odds-api.io/v3/events?apiKey=${apiKey}&sport=esports&status=pending&limit=100`, { next: { revalidate: 300 } });
+    if (!eventsResponse.ok) throw new Error(`Odds API events returned ${eventsResponse.status}`);
+    const events = (await eventsResponse.json()) as { id: number; home: string; away: string; date: string }[];
+    const matchesById = new Map(matches.map((match) => [match.id, match]));
+    const matchedEvents = events.flatMap((event) => {
+      const eventTeams = [oddsName(event.home), oddsName(event.away)];
+      const match = upcoming.find((candidate) => {
+        const teams = candidate.opponents.slice(0, 2).map((team) => oddsName(team.name));
+        const sameTeams = teams.every((team) => eventTeams.some((eventTeam) => eventTeam.includes(team) || team.includes(eventTeam)));
+        const closeStart = Math.abs(new Date(candidate.beginAt).getTime() - new Date(event.date).getTime()) < 12 * 60 * 60 * 1000;
+        return sameTeams && closeStart;
+      });
+      return match ? [{ event, match }] : [];
+    }).slice(0, maxEvents);
+
+    await Promise.all(matchedEvents.map(async ({ event, match }) => {
+      const response = await fetch(`https://api.odds-api.io/v3/odds?apiKey=${apiKey}&eventId=${event.id}&bookmakers=${encodeURIComponent(bookmakers)}`, { next: { revalidate: 300 } });
+      if (!response.ok) return;
+      const data = (await response.json()) as { bookmakers?: Record<string, { name: string; odds?: { home?: string; away?: string; updatedAt?: string }[] }[]> };
+      const odds = Object.entries(data.bookmakers ?? {}).flatMap(([bookmaker, markets]) => {
+        const market = markets.find((item) => item.name === "ML");
+        const price = market?.odds?.[0];
+        if (!price || (!price.home && !price.away)) return [];
+        return [{ bookmaker, home: price.home ? Number(price.home) : undefined, away: price.away ? Number(price.away) : undefined, updatedAt: market?.odds?.[0]?.updatedAt }];
+      });
+      const target = matchesById.get(match.id);
+      if (target && odds.length) {
+        const average = (side: "home" | "away") => {
+          const values = odds.flatMap((odd) => odd[side] && Number.isFinite(odd[side]) ? [odd[side] as number] : []);
+          return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : undefined;
+        };
+        target.odds = [{ bookmaker: "Market average", home: average("home"), away: average("away"), updatedAt: odds.map((odd) => odd.updatedAt).filter(Boolean).sort().at(-1) }];
+      }
+    }));
+  } catch (error) {
+    console.error("Could not load pre-match odds", error);
+  }
+  return matches;
+}
+
 const demo: Match[] = [
   { id: 1, status: "running", beginAt: new Date().toISOString(), name: "T1 vs Gen.G", league: "LCK", tournament: "Season Playoffs", tournamentId: 1, hasBracket: true, streams: [], rescheduled: false, mapWinners: ["T1", "Gen.G"], serie: "LCK 2026", bestOf: 5, importance: 4, importanceReason: "Top-league playoffs", opponents: [{ name: "T1", score: 1 }, { name: "Gen.G", score: 1 }] },
   { id: 2, status: "upcoming", beginAt: new Date(Date.now() + 7_200_000).toISOString(), name: "G2 Esports vs Karmine Corp", league: "LEC", tournament: "Summer Split", tournamentId: 2, hasBracket: false, streams: [], rescheduled: false, mapWinners: [], serie: "LEC 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "G2 Esports" }, { name: "Karmine Corp" }] },
@@ -93,15 +147,13 @@ export async function getMatches(fresh = false): Promise<{ matches: Match[]; dem
   try {
     const groups = await Promise.all([request("running", "running"), request("upcoming", "upcoming", 1), request("upcoming", "upcoming", 2)]);
     const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
-    return {
-      matches: groups.flat().sort((a, b) => {
+    const sortedMatches = groups.flat().sort((a, b) => {
         const statusDifference = statusRank[a.status] - statusRank[b.status];
         if (statusDifference) return statusDifference;
         if (a.status === "finished") return +new Date(b.beginAt) - +new Date(a.beginAt);
         return +new Date(a.beginAt) - +new Date(b.beginAt);
-      }),
-      demo: false
-    };
+      });
+    return { matches: await addPreMatchOdds(sortedMatches), demo: false };
   } catch (error) {
     console.error(error);
     return { matches: demo, demo: true };

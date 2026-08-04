@@ -12,6 +12,8 @@ npm run dev
 
 Set `PANDASCORE_API_KEY` in `.env.local` to use the live PandaScore feed. Without it, the UI uses three clearly labelled demo matches.
 
+For optional pre-match esports odds, set `ODDS_API_KEY` and optionally `ODDS_BOOKMAKERS` (comma-separated, default: `Bet365,Unibet`). `ODDS_MAX_EVENTS` defaults to 10 to stay within a free-tier request budget. Odds are fetched server-side and cached for five minutes; live odds and affiliate links are not implemented.
+
 The app polls PandaScore through Next.js's server cache once a minute. It requests the running, upcoming and finished endpoints, which is roughly 180 API calls/hour—well inside the free plan's 1,000-request hourly cap.
 
 ## Importance rating
