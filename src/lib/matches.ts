@@ -89,7 +89,7 @@ async function addPreMatchOdds(matches: Match[]) {
   if (!eligible.length) return matches;
 
   try {
-    const eventResponses = await Promise.all(["pending", "live"].map((status) => fetch(`https://api.odds-api.io/v3/events?apiKey=${apiKey}&sport=esports&status=${status}&limit=100`, { next: { revalidate: 300 } })));
+    const eventResponses = await Promise.all(["pending", "live"].map((status) => fetch(`https://api.odds-api.io/v3/events?apiKey=${apiKey}&sport=esports&status=${status}&limit=100`, { next: { revalidate: 900 } })));
     if (eventResponses.some((response) => !response.ok)) throw new Error("Odds API events request failed");
     const events = (await Promise.all(eventResponses.map((response) => response.json())))
       .flat() as { id: number; home: string; away: string; date: string }[];
@@ -105,17 +105,21 @@ async function addPreMatchOdds(matches: Match[]) {
       return match ? [{ event, match }] : [];
     }).slice(0, maxEvents);
 
-    await Promise.all(matchedEvents.map(async ({ event, match }) => {
-      const response = await fetch(`https://api.odds-api.io/v3/odds?apiKey=${apiKey}&eventId=${event.id}&bookmakers=${encodeURIComponent(bookmakers)}`, { next: { revalidate: 300 } });
-      if (!response.ok) return;
-      const data = (await response.json()) as { bookmakers?: Record<string, { name: string; odds?: { home?: string; away?: string; updatedAt?: string }[] }[]> };
+    const eventById = new Map(matchedEvents.map(({ event, match }) => [event.id, match]));
+    const eventIds = matchedEvents.map(({ event }) => event.id).join(",");
+    const response = await fetch(`https://api.odds-api.io/v3/odds/multi?apiKey=${apiKey}&eventIds=${eventIds}&bookmakers=${encodeURIComponent(bookmakers)}`, { next: { revalidate: 900 } });
+    if (!response.ok) return matches;
+    const payload = await response.json() as { events?: { id: number; bookmakers?: Record<string, { name: string; odds?: { home?: string; away?: string; updatedAt?: string }[] }[]> }[] } | { id: number; bookmakers?: Record<string, { name: string; odds?: { home?: string; away?: string; updatedAt?: string }[] }[]> }[];
+    const oddsEvents = Array.isArray(payload) ? payload : payload.events ?? [];
+    oddsEvents.forEach((data) => {
       const odds = Object.entries(data.bookmakers ?? {}).flatMap(([bookmaker, markets]) => {
         const market = markets.find((item) => item.name === "ML");
         const price = market?.odds?.[0];
         if (!price || (!price.home && !price.away)) return [];
         return [{ bookmaker, home: price.home ? Number(price.home) : undefined, away: price.away ? Number(price.away) : undefined, updatedAt: market?.odds?.[0]?.updatedAt }];
       });
-      const target = matchesById.get(match.id);
+      const match = eventById.get(data.id);
+      const target = match ? matchesById.get(match.id) : undefined;
       if (target && odds.length) {
         const average = (side: "home" | "away") => {
           const values = odds.flatMap((odd) => odd[side] && Number.isFinite(odd[side]) ? [odd[side] as number] : []);
@@ -123,7 +127,7 @@ async function addPreMatchOdds(matches: Match[]) {
         };
         target.odds = [{ bookmaker: "Market average", home: average("home"), away: average("away"), updatedAt: odds.map((odd) => odd.updatedAt).filter(Boolean).sort().at(-1) }];
       }
-    }));
+    });
   } catch (error) {
     console.error("Could not load pre-match odds", error);
   }
