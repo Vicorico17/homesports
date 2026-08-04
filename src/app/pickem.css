@@ -5,11 +5,13 @@
 .odds-book { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:7px; align-items:center; min-width:0; padding:7px 0; }
 .odds-book small { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; color:#c9cbc1; font-size:10px; }
 .odds-book b { color:var(--lime); font-size:14px; letter-spacing:-.2px; }
-.odds-row { display:contents; }
-.team { grid-template-columns:30px minmax(0,1fr) auto auto; }
-.team-odd { color:var(--lime); font-size:13px; font-weight:bold; letter-spacing:-.2px; }
+.odds-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:14px; padding-top:12px; border-top:1px solid #2a2b28; }
+.odds-row > span { display:flex; align-items:center; justify-content:space-between; min-width:0; gap:10px; }
+.odds-row small { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--dim); font-size:10px; }
+.odds-row b { color:var(--lime); font-size:14px; font-weight:bold; }
 
 @media (max-width:700px) {
   .pick-row { flex-wrap:wrap; }
   .pick-row > span { width:100%; }
+  .odds-row { gap:12px; }
 }
