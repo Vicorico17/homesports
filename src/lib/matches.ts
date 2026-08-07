@@ -84,12 +84,13 @@ async function addPreMatchOdds(matches: Match[]) {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) return matches;
   const bookmakers = process.env.ODDS_BOOKMAKERS ?? "Bet365,Unibet";
+  const selectedBookmakers = bookmakers.split(",").map((bookmaker) => bookmaker.trim()).filter(Boolean);
   const maxEvents = Math.max(1, Math.min(10, Number(process.env.ODDS_MAX_EVENTS ?? 10)));
   const eligible = matches.filter((match) => (match.status === "upcoming" || match.status === "running") && match.opponents.length === 2);
   if (!eligible.length) return matches;
 
   try {
-    const eventResponses = await Promise.all(["pending", "live"].map((status) => fetch(`https://api.odds-api.io/v3/events?apiKey=${apiKey}&sport=esports&status=${status}&limit=100`, { next: { revalidate: 900 } })));
+    const eventResponses = await Promise.all(["pending", "live"].flatMap((status) => selectedBookmakers.map((bookmaker) => fetch(`https://api.odds-api.io/v3/events?apiKey=${apiKey}&sport=esports&status=${status}&bookmaker=${encodeURIComponent(bookmaker)}&limit=100`, { next: { revalidate: 1200 } }))));
     if (eventResponses.some((response) => !response.ok)) throw new Error("Odds API events request failed");
     const events = (await Promise.all(eventResponses.map((response) => response.json())))
       .flat() as { id: number; home: string; away: string; date: string }[];
@@ -107,7 +108,7 @@ async function addPreMatchOdds(matches: Match[]) {
 
     const eventById = new Map(matchedEvents.map(({ event, match }) => [event.id, match]));
     const eventIds = matchedEvents.map(({ event }) => event.id).join(",");
-    const response = await fetch(`https://api.odds-api.io/v3/odds/multi?apiKey=${apiKey}&eventIds=${eventIds}&bookmakers=${encodeURIComponent(bookmakers)}`, { next: { revalidate: 900 } });
+    const response = await fetch(`https://api.odds-api.io/v3/odds/multi?apiKey=${apiKey}&eventIds=${eventIds}&bookmakers=${encodeURIComponent(bookmakers)}`, { next: { revalidate: 1200 } });
     if (!response.ok) return matches;
     const payload = await response.json() as { events?: { id: number; bookmakers?: Record<string, { name: string; odds?: { home?: string; away?: string; updatedAt?: string }[] }[]> }[] } | { id: number; bookmakers?: Record<string, { name: string; odds?: { home?: string; away?: string; updatedAt?: string }[] }[]> }[];
     const oddsEvents = Array.isArray(payload) ? payload : payload.events ?? [];
