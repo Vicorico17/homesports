@@ -40,7 +40,7 @@
 .competition-card-link { cursor:pointer; }.competition-card-link:hover { color:var(--lime); }
 .team[role="link"]:hover b, .standing-team a:hover, .history-row a:hover { color:var(--lime); }
 .standing-team a, .history-row a { color:var(--ink); text-decoration:none; }
-.large-form, .roster { display:flex; gap:10px; }.roster { flex-wrap:nowrap; overflow-x:auto; padding-bottom:8px; }
+.large-form, .roster { display:flex; gap:10px; }.roster { flex-wrap:wrap; }
 .large-form i { width:30px; height:30px; display:grid; place-items:center; font-style:normal; color:#111; font-weight:bold; }
 .large-form .win { background:#55d66f; }.large-form .loss { background:#e45757; color:#fff; }
 .roster { gap:10px; }
