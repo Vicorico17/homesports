@@ -9,6 +9,7 @@ export type Match = {
   leagueImageUrl?: string | null;
   tournament: string;
   tournamentId: number;
+  tournamentImageUrl?: string | null;
   hasBracket: boolean;
   streams: { url: string; language: string; official: boolean }[];
   rescheduled: boolean;
@@ -23,7 +24,7 @@ export type Match = {
 
 type PandaMatch = {
   id: number; status: string; begin_at: string; name: string; number_of_games: number;
-  league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; has_bracket?: boolean }; serie?: { full_name?: string; name?: string };
+  league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; image_url?: string | null; has_bracket?: boolean }; serie?: { full_name?: string; name?: string };
   opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[];
   results?: { score?: number; team_id?: number }[];
   rescheduled?: boolean;
@@ -61,6 +62,7 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
     leagueImageUrl: match.league?.image_url,
     tournament: match.tournament?.name ?? "",
     tournamentId: match.tournament?.id ?? match.id,
+    tournamentImageUrl: match.tournament?.image_url,
     hasBracket: match.tournament?.has_bracket ?? false,
     streams: (match.streams_list ?? []).flatMap((stream) => stream.raw_url ? [{ url: stream.raw_url, language: stream.language ?? "stream", official: stream.official ?? false }] : []),
     rescheduled: match.rescheduled ?? false,

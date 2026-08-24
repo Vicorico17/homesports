@@ -9,6 +9,7 @@
 .competition-card:hover { border-color:var(--lime); }
 .competition-card span, .competition-card small { color:var(--lime); font-size:10px; letter-spacing:1px; }
 .competition-card h2 { margin:22px 0 10px; }
+.competition-logo, .competition-logo-fallback { width:42px; height:42px; object-fit:contain; border-radius:8px; background:#242521; padding:6px; display:grid; place-items:center; color:var(--lime); font-style:normal; font-weight:bold; margin-bottom:14px; }
 .competition-section { margin-top:34px; }
 .competition-section > h2 { margin-bottom:14px; }
 .standings, .history-list { border:1px solid var(--line); background:var(--surface); }
