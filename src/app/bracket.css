@@ -6,8 +6,8 @@
 .bracket-board { display:flex; gap:28px; overflow-x:auto; padding:10px 20px 40px 0; }
 .bracket-column, .bracket-round { min-width:290px; flex:0 0 290px; }
 .bracket-column h2, .bracket-round h3 { color:var(--dim); font-size:12px; letter-spacing:1px; text-transform:uppercase; margin:0 0 14px; }
-.bracket-matches, .bracket-round-matches { display:flex; flex-direction:column; justify-content:space-around; gap:22px; min-height:520px; }
-.bracket-round-matches { min-height:260px; }
+.bracket-matches, .bracket-round-matches { display:grid; align-items: center; gap:0; min-height:520px; }
+.bracket-round-matches { min-height:520px; }
 .bracket-match { position:relative; background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:10px 12px; }
 .bracket-match::after { content:""; position:absolute; top:50%; right:-29px; width:28px; border-top:1px solid #55564e; }
 .bracket-column:last-child .bracket-match::after, .bracket-round:last-child .bracket-match::after { display:none; }
