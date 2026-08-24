@@ -3,18 +3,59 @@ import { getMatches } from "@/lib/matches";
 
 type Standing = { rank?: number; team?: { id?: number; name?: string; image_url?: string | null }; wins?: number; losses?: number; points?: number; score?: number };
 type Tournament = { name?: string; image_url?: string | null; league?: { name?: string } };
-type TournamentMatch = { id: number; status: string; begin_at: string; name?: string; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { team_id?: number; score?: number }[] };
-type BracketMatch = { id: number; name?: string; status?: string; scheduled_at?: string | null; opponents?: { opponent?: { id?: number; name?: string } }[]; results?: { score?: number }[] };
+type TournamentMatch = { id: number; status: string; begin_at: string; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { team_id?: number; score?: number }[] };
+type BracketMatch = { id: number; name?: string; status?: string; scheduled_at?: string | null; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { score?: number }[] };
 
 export const revalidate = 60;
-async function panda<T>(path: string, token: string) { const response = await fetch(`https://api.pandascore.co/${path}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } }); return response.ok ? await response.json() as T : null; }
+
+async function panda<T>(path: string, token: string) {
+  const response = await fetch(`https://api.pandascore.co/${path}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
+  return response.ok ? (await response.json() as T) : null;
+}
+
 function resultFor(match: TournamentMatch, teamId?: number) { return match.results?.find((result) => result.team_id === teamId)?.score; }
+function roundName(match: BracketMatch) { return match.name?.split(":")[0]?.trim() || "Playoffs"; }
 
 export default async function CompetitionPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params; const { matches: feedMatches } = await getMatches(); const token = process.env.PANDASCORE_API_KEY;
-  let tournament: Tournament | null = null; let standings: Standing[] = []; let tournamentMatches: TournamentMatch[] = []; let bracket: BracketMatch[] = [];
-  if (token) { const [tournamentData, standingsData, matchesData, bracketData] = await Promise.all([panda<Tournament>(`tournaments/${id}`, token), panda<Standing[]>(`tournaments/${id}/standings?per_page=100`, token), panda<TournamentMatch[]>(`tournaments/${id}/matches?per_page=100&sort=-begin_at`, token), panda<BracketMatch[]>(`tournaments/${id}/brackets`, token)]); tournament = tournamentData; standings = standingsData ?? []; tournamentMatches = matchesData ?? []; bracket = bracketData ?? []; }
-  const localMatches = feedMatches.filter((match) => String(match.tournamentId) === id); const source = localMatches[0]; const rows: Standing[] = standings.length ? standings : [...new Map(localMatches.flatMap((match) => match.opponents.map((team) => [team.id, team]))).values()].map((team, index) => ({ rank: index + 1, team: { id: team.id, name: team.name, image_url: team.imageUrl } }));
-  const title = tournament?.name ?? source?.tournament ?? source?.serie ?? "Competition"; const league = tournament?.league?.name ?? source?.league ?? "COMPETITION"; const logo = tournament?.image_url ?? source?.tournamentImageUrl ?? source?.leagueImageUrl;
-  return <main className="competition-page"><Link href="/competitions">← All competitions</Link><div className="competition-heading">{logo ? <img src={logo} alt="" /> : <i>{title.slice(0, 1)}</i>}<div><p className="eyebrow">{league}</p><h1>{title}</h1></div></div><p className="page-intro">Official standings, match history, and tournament bracket.</p><section className="competition-section"><h2>Leaderboard</h2>{rows.length ? <div className="standings"><div className="standing-row heading"><span>#</span><span>TEAM</span><span>W–L</span><span>POINTS</span><span>FORM</span></div>{rows.map((row, index) => <div className="standing-row" key={row.team?.id ?? row.team?.name ?? index}><span>{row.rank ?? index + 1}</span><span className="standing-team">{row.team?.image_url ? <img src={row.team.image_url} alt="" /> : <i>{row.team?.name?.slice(0, 1)}</i>}<a href={`/teams/${row.team?.id}`}>{row.team?.name ?? "Unknown team"}</a></span><b>{row.wins ?? "—"}–{row.losses ?? "—"}</b><span>{row.points ?? row.score ?? "—"}</span><span className="form">{localMatches.filter((match) => match.status === "finished" && match.opponents.some((team) => team.id === row.team?.id)).slice(0, 5).map((match, resultIndex) => { const current = match.opponents.find((team) => team.id === row.team?.id); const other = match.opponents.find((team) => team.id !== row.team?.id); const win = current && other && (current.score ?? 0) > (other.score ?? 0); return <i className={win ? "win" : "loss"} key={resultIndex}>{win ? "W" : "L"}</i>; })}</span></div>)}</div> : <p className="empty">No standings are available for this competition yet.</p>}</section><section className="competition-section"><h2>Recent results</h2><div className="history-list">{tournamentMatches.filter((match) => match.status === "finished").slice(0, 20).map((match) => { const opponents = match.opponents ?? []; const scores = opponents.map((entry) => resultFor(match, entry.opponent?.id)); const high = Math.max(...scores.map((score) => score ?? -1)); return <div className="history-row" key={match.id}><span className="history-date"><b>{new Date(match.begin_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</b><small className="competition-label">{logo ? <img src={logo} alt="" /> : null}{title}</small></span><span className="history-teams">{opponents.map((entry, index) => <a className={scores[index] === high ? "winner" : ""} href={`/teams/${entry.opponent?.id}`} key={entry.opponent?.id}>{entry.opponent?.image_url ? <img src={entry.opponent.image_url} alt="" /> : <i>{(entry.opponent?.name ?? "T").slice(0, 1)}</i>}{entry.opponent?.name ?? "TBD"}</a>)}</span><b>{scores.map((score, index) => <span className={scores[index] === high ? "winner" : ""} key={index}>{score ?? "—"}</span>)}</b></div>; })}</div></section><section className="competition-section"><h2>Bracket</h2>{bracket.length ? <div className="bracket-list">{bracket.map((match) => <div className="history-row" key={match.id}><span>{match.name ?? "Playoff match"}</span><span>{(match.opponents ?? []).map((entry) => entry.opponent?.name ?? "TBD").join(" vs ")}</span><b>{(match.results ?? []).map((result) => result.score ?? "—").join(" – ")}</b></div>)}</div> : <p className="empty">No bracket is available for this competition yet.</p>}</section></main>;
+  const { id } = await params;
+  const { matches: feedMatches } = await getMatches();
+  const token = process.env.PANDASCORE_API_KEY;
+  let tournament: Tournament | null = null;
+  let standings: Standing[] = [];
+  let tournamentMatches: TournamentMatch[] = [];
+  let bracket: BracketMatch[] = [];
+
+  if (token) {
+    const [tournamentData, standingsData, matchesData, bracketData] = await Promise.all([
+      panda<Tournament>(`tournaments/${id}`, token),
+      panda<Standing[]>(`tournaments/${id}/standings?per_page=100`, token),
+      panda<TournamentMatch[]>(`tournaments/${id}/matches?per_page=100&sort=-begin_at`, token),
+      panda<BracketMatch[]>(`tournaments/${id}/brackets`, token),
+    ]);
+    tournament = tournamentData;
+    standings = standingsData ?? [];
+    tournamentMatches = matchesData ?? [];
+    bracket = bracketData ?? [];
+  }
+
+  const localMatches = feedMatches.filter((match) => String(match.tournamentId) === id);
+  const source = localMatches[0];
+  const rows: Standing[] = standings.length ? standings : [...new Map(localMatches.flatMap((match) => match.opponents.map((team) => [team.id, team]))).values()].map((team, index) => ({ rank: index + 1, team: { id: team.id, name: team.name, image_url: team.imageUrl } }));
+  const title = tournament?.name ?? source?.tournament ?? source?.serie ?? "Competition";
+  const league = tournament?.league?.name ?? source?.league ?? "COMPETITION";
+  const logo = tournament?.image_url ?? source?.tournamentImageUrl ?? source?.leagueImageUrl;
+  const rounds = [...new Map(bracket.map((match) => [roundName(match), bracket.filter((item) => roundName(item) === roundName(match))])).entries()];
+  const finishedMatches = tournamentMatches.filter((match) => match.status === "finished").slice(0, 20);
+
+  return <main className="competition-page">
+    <Link href="/competitions">← All competitions</Link>
+    <div className="competition-heading">{logo ? <img src={logo} alt="" /> : <i>{title.slice(0, 1)}</i>}<div><p className="eyebrow">{league}</p><h1>{title}</h1></div></div>
+    <p className="page-intro">Official standings, match history, and tournament bracket.</p>
+
+    <section className="competition-section"><h2>Leaderboard</h2>{rows.length ? <div className="standings"><div className="standing-row heading"><span>#</span><span>TEAM</span><span>W–L</span><span>POINTS</span><span>FORM</span></div>{rows.map((row, index) => <div className="standing-row" key={row.team?.id ?? row.team?.name ?? index}><span>{row.rank ?? index + 1}</span><span className="standing-team">{row.team?.image_url ? <img src={row.team.image_url} alt="" /> : <i>{row.team?.name?.slice(0, 1)}</i>}<a href={`/teams/${row.team?.id}`}>{row.team?.name ?? "Unknown team"}</a></span><b>{row.wins ?? "—"}–{row.losses ?? "—"}</b><span>{row.points ?? row.score ?? "—"}</span><span className="form">{localMatches.filter((match) => match.status === "finished" && match.opponents.some((team) => team.id === row.team?.id)).slice(0, 5).map((match, resultIndex) => { const current = match.opponents.find((team) => team.id === row.team?.id); const other = match.opponents.find((team) => team.id !== row.team?.id); const win = current && other && (current.score ?? 0) > (other.score ?? 0); return <i className={win ? "win" : "loss"} key={resultIndex}>{win ? "W" : "L"}</i>; })}</span></div>)}</div> : <p className="empty">No standings are available for this competition yet.</p>}</section>
+
+    <section className="competition-section"><h2>Recent results</h2>{finishedMatches.length ? <div className="history-list">{finishedMatches.map((match) => { const opponents = match.opponents ?? []; const scores = opponents.map((entry) => resultFor(match, entry.opponent?.id)); const high = Math.max(...scores.map((score) => score ?? -1)); return <div className="history-row" key={match.id}><span className="history-date"><b>{new Date(match.begin_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</b><small className="competition-label">{logo ? <img src={logo} alt="" /> : null}{title}</small></span><span className="history-teams">{opponents.map((entry, index) => <a className={scores[index] === high ? "winner" : ""} href={`/teams/${entry.opponent?.id}`} key={entry.opponent?.id}>{entry.opponent?.image_url ? <img src={entry.opponent.image_url} alt="" /> : <i>{(entry.opponent?.name ?? "T").slice(0, 1)}</i>}{entry.opponent?.name ?? "TBD"}</a>)}</span><b>{scores.map((score, index) => <span className={scores[index] === high ? "winner" : ""} key={index}>{score ?? "—"}</span>)}</b></div>; })}</div> : <p className="empty">No completed matches are available for this competition yet.</p>}</section>
+
+    <section className="competition-section"><div className="section-heading"><h2>Bracket</h2>{bracket.length ? <Link className="bracket-link" href={`/bracket/${id}`}>Open full bracket ↗</Link> : null}</div>{rounds.length ? <div className="bracket-board">{rounds.map(([round, matches]) => <div className="bracket-round" key={round}><h3>{round}</h3><div className="bracket-round-matches">{matches.map((match) => { const scores = match.results?.map((result) => result.score ?? "—") ?? []; return <div className="bracket-match" key={match.id}>{(match.opponents ?? []).map((entry, index) => <div className="bracket-team" key={entry.opponent?.id ?? index}>{entry.opponent?.image_url ? <img src={entry.opponent.image_url} alt="" /> : <i>{(entry.opponent?.name ?? "TBD").slice(0, 1)}</i>}<span>{entry.opponent?.name ?? "TBD"}</span><b>{scores[index] ?? "—"}</b></div>)}</div>; })}</div></div>)}</div> : <p className="empty">No bracket is available for this competition yet.</p>}</section>
+  </main>;
 }
