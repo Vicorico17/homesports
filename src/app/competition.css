@@ -41,11 +41,11 @@
 .competition-card-link { cursor:pointer; }.competition-card-link:hover { color:var(--lime); }
 .team[role="link"]:hover b, .standing-team a:hover, .history-row a:hover { color:var(--lime); }
 .standing-team a, .history-row a { color:var(--ink); text-decoration:none; }
-.large-form, .roster { display:flex; gap:10px; }.roster { flex-wrap:wrap; }
+.large-form { display:flex; gap:10px; }.roster { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
 .large-form i { width:30px; height:30px; display:grid; place-items:center; font-style:normal; color:#111; font-weight:bold; }
 .large-form .win { background:#55d66f; }.large-form .loss { background:#e45757; color:#fff; }
 .roster { gap:10px; }
-.roster-player { position:relative; display:flex; align-items:center; gap:10px; flex:0 0 220px; min-width:220px; padding:12px 42px 12px 12px; background:var(--surface); border:1px solid var(--line); }
+.roster-player { position:relative; display:flex; align-items:center; gap:8px; min-width:0; padding:12px 34px 12px 10px; background:var(--surface); border:1px solid var(--line); }
 .roster-player img, .roster-player i { width:38px; height:38px; object-fit:contain; border-radius:50%; }.roster-player i { display:grid; place-items:center; background:#bdbdb5; color:#111; font-style:normal; }
 .roster-player span { display:flex; align-items:center; gap:8px; min-width:0; }.roster-player span b { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.roster-player small { color:var(--dim); }
 .roster-player small { display:none; }.roster-player .substitute-label { display:block; position:absolute; right:10px; bottom:5px; color:#fa9b52; font-size:0; font-weight:bold; letter-spacing:.6px; }.roster-player .substitute-label::after { content:"SUB"; font-size:8px; }.roster-player:has(.substitute-label) { border-color:#76502e; }
@@ -59,4 +59,5 @@
   .standing-row { grid-template-columns:24px minmax(120px,1fr) 52px; }
   .standing-row > :nth-child(4), .standing-row > :nth-child(5), .standing-row.heading > :nth-child(3), .standing-row.heading > :nth-child(4), .standing-row.heading > :nth-child(5) { display:none; }
   .history-row { grid-template-columns:55px 1fr 55px; }
+  .roster { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
