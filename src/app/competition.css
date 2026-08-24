@@ -2,7 +2,7 @@
 .competition-page > a { color:var(--dim); text-decoration:none; font-size:13px; }
 .competition-page h1 { margin-bottom:18px; }
 .competition-page h1 em { color:var(--lime); font-style:normal; }
-.team-heading { display:flex; align-items:center; gap:18px; margin-top:14px; }.team-heading h1 { margin:0; }.team-heading > img, .team-heading > i { width:64px; height:64px; object-fit:contain; border-radius:50%; }.team-heading > i { display:grid; place-items:center; background:#bdbdb5; color:#111; font-style:normal; font-size:28px; font-weight:bold; }
+.team-heading { display:flex; align-items:center; gap:18px; margin:34px 0 28px; }.team-heading h1 { margin:0; font-size:clamp(32px,5vw,58px); letter-spacing:-3px; line-height:1; }.team-heading > img, .team-heading > i { width:72px; height:72px; object-fit:contain; border-radius:12px; }.team-heading > img { background:#20211f; padding:8px; }.team-heading > i { display:grid; place-items:center; background:#bdbdb5; color:#111; font-style:normal; font-size:28px; font-weight:bold; }
 .page-intro { color:var(--dim); max-width:530px; line-height:1.5; margin-bottom:42px; }
 .competition-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .competition-card { background:var(--surface); border:1px solid var(--line); padding:20px; color:var(--ink); text-decoration:none; min-height:140px; }
@@ -39,10 +39,11 @@
 .large-form i { width:30px; height:30px; display:grid; place-items:center; font-style:normal; color:#111; font-weight:bold; }
 .large-form .win { background:#55d66f; }.large-form .loss { background:#e45757; color:#fff; }
 .roster { flex-wrap:wrap; gap:10px; }
-.roster-player { display:flex; align-items:center; gap:10px; min-width:220px; padding:12px; background:var(--surface); border:1px solid var(--line); }
+.roster-player { position:relative; display:flex; align-items:center; gap:10px; min-width:220px; padding:12px 42px 12px 12px; background:var(--surface); border:1px solid var(--line); }
 .roster-player img, .roster-player i { width:38px; height:38px; object-fit:contain; border-radius:50%; }.roster-player i { display:grid; place-items:center; background:#bdbdb5; color:#111; font-style:normal; }
 .roster-player span { display:grid; gap:4px; }.roster-player small { color:var(--dim); }
-.roster-player .role-icon { width:22px; height:22px; object-fit:contain; border-radius:0; opacity:.9; }
+.roster-player .substitute-label { color:#fa9b52; font-weight:bold; letter-spacing:.5px; }
+.roster-player > img { width:38px; height:38px; object-fit:cover; border-radius:50%; }.roster-player .role-icon { position:absolute; right:12px; top:50%; width:22px; height:22px; object-fit:contain; border-radius:0; opacity:.9; transform:translateY(-50%); }
 .competition-label { display:flex; align-items:center; gap:5px; margin-top:5px; }.competition-label img { width:16px; height:16px; object-fit:contain; }
 .history-row .winner { color:#55d66f; font-weight:bold; }
 @media (max-width:700px) {
