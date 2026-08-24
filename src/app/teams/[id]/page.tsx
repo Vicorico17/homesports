@@ -3,7 +3,7 @@ import { getMatches } from "@/lib/matches";
 
 type Player = { id: number | string; nickname?: string; name?: string; image_url?: string | null; role?: string; position?: string; lane?: string; role_name?: string; active?: boolean; substitute?: boolean; is_substitute?: boolean; status?: string };
 type TeamMatch = { id: number; status: string; begin_at?: string | null; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { team_id?: number; score?: number }[]; league?: { name?: string; image_url?: string | null }; tournament?: { name?: string } };
-type LeaguepediaRow = { fields?: { Team?: string; Link?: string; Role?: string; IsSubstitute?: string | boolean; IsTrainee?: string | boolean } };
+type LeaguepediaRow = { title?: { Team?: string; Link?: string; Role?: string; IsSubstitute?: string | boolean; IsTrainee?: string | boolean }; fields?: { Team?: string; Link?: string; Role?: string; IsSubstitute?: string | boolean; IsTrainee?: string | boolean } };
 const roleIcons: Record<string, string> = { top: "position-top.svg", jungle: "position-jungle.svg", jung: "position-jungle.svg", jungler: "position-jungle.svg", jng: "position-jungle.svg", jg: "position-jungle.svg", mid: "position-middle.svg", middle: "position-middle.svg", bot: "position-bottom.svg", adc: "position-bottom.svg", carry: "position-bottom.svg", support: "position-utility.svg", sup: "position-utility.svg", utility: "position-utility.svg" };
 function roleIcon(role?: string) { const key = role?.toLowerCase().replace(/[^a-z]/g, "") ?? ""; const file = Object.entries(roleIcons).find(([name]) => key.includes(name))?.[1]; if (!file) return undefined; return file === "position-jungle.svg" ? "/icons/position-jungle.svg" : `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-champ-select/global/default/svg/${file}`; }
 function isSub(player: Player) { const status = player.status?.toLowerCase() ?? ""; return player.substitute === true || player.is_substitute === true || status.includes("sub"); }
@@ -20,7 +20,7 @@ async function getVerifiedRoster(teamName: string, pandaPlayers: Player[]) {
     const payload = await response.json() as { cargoquery?: LeaguepediaRow[] };
     const rows = payload.cargoquery ?? [];
     if (!rows.length) return null;
-    return rows.flatMap((row, index) => { const fields = row.fields ?? {}; const nickname = fields.Link?.trim(); if (!nickname) return []; const match = pandaPlayers.find((player) => normalizedName(player.nickname ?? player.name) === normalizedName(nickname)); const substitute = truthy(fields.IsSubstitute) || truthy(fields.IsTrainee); return [{ ...(match ?? {}), id: match?.id ?? `leaguepedia-${normalizedName(nickname)}-${index}`, nickname, role: fields.Role ?? match?.role, substitute, is_substitute: substitute }]; });
+    return rows.flatMap((row, index) => { const fields = row.title ?? row.fields ?? {}; const nickname = fields.Link?.trim(); if (!nickname) return []; const match = pandaPlayers.find((player) => normalizedName(player.nickname ?? player.name) === normalizedName(nickname)); const substitute = truthy(fields.IsSubstitute) || truthy(fields.IsTrainee); return [{ ...(match ?? {}), id: match?.id ?? `leaguepedia-${normalizedName(nickname)}-${index}`, nickname, role: fields.Role ?? match?.role, substitute, is_substitute: substitute }]; });
   } catch { return null; }
 }
 export const revalidate = 300;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getMatches } from "@/lib/matches";
+import { getLeaguepediaCompetition } from "@/lib/leaguepedia";
 
 type Standing = { rank?: number; team?: { id?: number; name?: string; image_url?: string | null }; wins?: number; losses?: number; points?: number; score?: number };
 type Tournament = { name?: string; image_url?: string | null; league?: { name?: string } };
@@ -43,11 +44,15 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
 
   const localMatches = feedMatches.filter((match) => String(match.tournamentId) === id);
   const source = localMatches[0];
-  const rows: Standing[] = standings.length ? standings : [...new Map(localMatches.flatMap((match) => match.opponents.map((team) => [team.id, team]))).values()].map((team, index) => ({ rank: index + 1, team: { id: team.id, name: team.name, image_url: team.imageUrl } }));
   const title = tournament?.name ?? source?.tournament ?? source?.serie ?? "Competition";
   const league = tournament?.league?.name ?? source?.league ?? "COMPETITION";
   const logo = tournament?.image_url ?? source?.tournamentImageUrl ?? source?.leagueImageUrl;
-  const rounds = [...new Map(bracket.map((match) => [roundName(match), bracket.filter((item) => roundName(item) === roundName(match))])).entries()].sort(([a, aMatches], [b, bMatches]) => { const aDate = Math.min(...aMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); const bDate = Math.min(...bMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); return (Number.isFinite(aDate) || Number.isFinite(bDate)) ? aDate - bDate : roundRank(a) - roundRank(b); });
+  const leaguepedia = await getLeaguepediaCompetition([source?.tournament ?? "", source?.serie ?? "", title]);
+  const wikiRows: Standing[] = (leaguepedia?.standings ?? []).map((row) => ({ rank: Number(row.Place) || undefined, team: { name: row.Team }, wins: Number(row.WinSeries) || undefined, losses: Number(row.LossSeries) || undefined, points: Number(row.Points) || undefined }));
+  const wikiBracket: BracketMatch[] = (leaguepedia?.matches ?? []).filter((match) => `${match.Phase ?? ""} ${match.Round ?? ""}`.match(/playoff|knockout|quarter|semi|final|upper|lower|bracket/i)).map((match, index) => ({ id: Number(match.MatchId?.replace(/\D/g, "")) || index + 1, name: match.Round || match.Phase || "Playoffs", status: "finished", scheduled_at: match.DateTime_UTC ?? null, opponents: [{ opponent: { name: match.Team1 } }, { opponent: { name: match.Team2 } }], results: [{ score: Number(match.Team1Final ?? match.Team1Score) || 0 }, { score: Number(match.Team2Final ?? match.Team2Score) || 0 }] }));
+  const bracketSource = wikiBracket.length ? wikiBracket : bracket;
+  const rows: Standing[] = wikiRows.length ? wikiRows : standings.length ? standings : [...new Map(localMatches.flatMap((match) => match.opponents.map((team) => [team.id, team]))).values()].map((team, index) => ({ rank: index + 1, team: { id: team.id, name: team.name, image_url: team.imageUrl } }));
+  const rounds = [...new Map(bracketSource.map((match) => [roundName(match), bracketSource.filter((item) => roundName(item) === roundName(match))])).entries()].sort(([a, aMatches], [b, bMatches]) => { const aDate = Math.min(...aMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); const bDate = Math.min(...bMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); return (Number.isFinite(aDate) || Number.isFinite(bDate)) ? aDate - bDate : roundRank(a) - roundRank(b); });
   const bracketSlots = Math.max(...rounds.map(([, matches]) => matches.length), 1);
   const finishedMatches = tournamentMatches.filter((match) => match.status === "finished").slice(0, 20);
 
