@@ -97,6 +97,10 @@ export function Matchboard({ matches: initialMatches, demo, view = "all" }: { ma
       card.querySelectorAll<HTMLElement>(".team").forEach((team, teamIndex) => {
         const target = list[index]?.opponents[teamIndex];
         if (!target?.id) return;
+        team.removeAttribute("role");
+        team.removeAttribute("tabindex");
+        team.onclick = null;
+        team.onkeydown = null;
         const name = team.querySelector<HTMLElement>("b");
         if (!name) return;
         name.setAttribute("role", "link");
