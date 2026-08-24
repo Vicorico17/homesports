@@ -43,7 +43,7 @@
 .roster-player { position:relative; display:flex; align-items:center; gap:10px; min-width:220px; padding:12px 42px 12px 12px; background:var(--surface); border:1px solid var(--line); }
 .roster-player img, .roster-player i { width:38px; height:38px; object-fit:contain; border-radius:50%; }.roster-player i { display:grid; place-items:center; background:#bdbdb5; color:#111; font-style:normal; }
 .roster-player span { display:grid; gap:4px; }.roster-player small { color:var(--dim); }
-.roster-player .substitute-label { color:#fa9b52; font-weight:bold; letter-spacing:.5px; }
+.roster-player small { text-transform:uppercase; }.roster-player .substitute-label { color:#fa9b52; font-weight:bold; letter-spacing:.5px; }
 .roster-player > img { width:38px; height:38px; object-fit:cover; border-radius:50%; }.roster-player .role-icon { position:absolute; right:12px; top:50%; width:22px; height:22px; object-fit:contain; border-radius:0; opacity:.9; transform:translateY(-50%); }
 .competition-label { display:flex; align-items:center; gap:5px; width:100%; margin-top:5px; }.competition-label img { width:16px; height:16px; object-fit:contain; }
 .history-row .winner { color:#55d66f; font-weight:bold; }
