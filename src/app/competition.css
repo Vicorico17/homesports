@@ -8,6 +8,7 @@
 .competition-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .competition-card { background:var(--surface); border:1px solid var(--line); padding:20px; color:var(--ink); text-decoration:none; min-height:140px; }
 .competition-card:hover { border-color:var(--lime); }
+.league-link { color:inherit; text-decoration:none; }.league-link:hover { color:var(--lime); }
 .competition-card span, .competition-card small { color:var(--lime); font-size:10px; letter-spacing:1px; }
 .competition-card h2 { margin:22px 0 10px; }
 .competition-logo, .competition-logo-fallback { width:42px; height:42px; object-fit:contain; border-radius:8px; background:#242521; padding:6px; display:grid; place-items:center; color:var(--lime); font-style:normal; font-weight:bold; margin-bottom:14px; }
