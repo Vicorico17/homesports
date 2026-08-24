@@ -14,6 +14,7 @@
 .competition-logo, .competition-logo-fallback { width:42px; height:42px; object-fit:contain; border-radius:8px; background:#242521; padding:6px; display:grid; place-items:center; color:var(--lime); font-style:normal; font-weight:bold; margin-bottom:14px; }
 .competition-section { margin-top:34px; }
 .competition-section > h2 { margin-bottom:14px; }
+.sub-roster-heading { margin-top:28px !important; border-top:1px solid var(--line); padding-top:22px; }
 .standings, .history-list { border:1px solid var(--line); background:var(--surface); }
 .standing-row { display:grid; grid-template-columns:34px minmax(180px,1fr) 70px 70px 110px; gap:12px; align-items:center; padding:12px 15px; border-top:1px solid var(--line); font-size:13px; }
 .standing-row:first-child { border-top:0; }
@@ -49,6 +50,7 @@
 .roster-player span { display:grid; gap:4px; }.roster-player small { color:var(--dim); }
 .roster-player small { display:none; }.roster-player .substitute-label { display:block; position:absolute; right:10px; bottom:5px; color:#fa9b52; font-size:0; font-weight:bold; letter-spacing:.6px; }.roster-player .substitute-label::after { content:"SUB"; font-size:8px; }.roster-player:has(.substitute-label) { border-color:#76502e; }
 .roster-player > img { width:38px; height:38px; object-fit:cover; border-radius:50%; }.roster-player .role-icon { position:absolute; right:12px; top:50%; width:22px; height:22px; object-fit:contain; border-radius:0; opacity:.9; transform:translateY(-50%); }
+.substitute-player { border-color:#76502e; }
 .competition-label { display:flex; align-items:center; gap:5px; width:100%; margin-top:5px; }.competition-label img { width:16px; height:16px; object-fit:contain; }
 .history-row .winner { color:#55d66f; font-weight:bold; }
 @media (max-width:700px) {
