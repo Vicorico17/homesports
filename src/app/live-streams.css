@@ -1,8 +1,8 @@
-.live-streams { display:none; }
-.card-streams { display:flex; gap:6px; flex-wrap:wrap; margin:-2px 0 12px; }
-.card-streams a { display:inline-flex; align-items:center; gap:7px; padding:6px 8px; border:1px solid #3c4b32; background:#1d251a; color:var(--lime); text-decoration:none; font-size:9px; letter-spacing:.7px; }
-.card-streams a:hover { border-color:var(--lime); background:#293722; }
-.card-streams a span { color:var(--dim); font-size:8px; letter-spacing:.3px; }
+.live-streams { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:16px; padding:10px 12px; border:1px solid #455334; background:#171a14; }
+.live-streams > span { color:var(--lime); font-size:10px; letter-spacing:1px; margin-right:6px; }
+.live-streams > span b { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--orange); margin:0 5px 1px 0; }
+.live-streams a { color:#e5e4da; background:#262c20; border-radius:2px; padding:6px 8px; text-decoration:none; font-size:11px; }
+.live-streams a:hover { background:var(--lime); color:#111; }
 .card-watch-link { display:block; margin:-17px -17px 13px; padding:9px 10px; background:var(--lime); color:#111; border-radius:3px 3px 0 0; text-align:center; text-decoration:none; font-size:10px; font-weight:bold; letter-spacing:1px; }
 .card-watch-link:hover { background:#d7ff9d; }
 .league-logo { width:16px; height:16px; object-fit:contain; vertical-align:middle; margin:-2px 5px 0 0; }

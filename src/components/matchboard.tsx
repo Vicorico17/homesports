@@ -1,14 +1,70 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import type { Match, MatchStatus } from "@/lib/matches";
-const tabs: { label: string; status: MatchStatus | "all" }[] = [{ label: "All matches", status: "all" }, { label: "Live", status: "running" }, { label: "Upcoming", status: "upcoming" }];
+
+const tabs: { label: string; status: MatchStatus | "all" }[] = [
+  { label: "All matches", status: "all" },
+  { label: "Live", status: "running" },
+  { label: "Upcoming", status: "upcoming" },
+];
 const popularLeagues = ["LCK", "LPL", "LEC", "LCS", "LFL", "Prime League 1st Division"];
-function timeLabel(value: string, status: MatchStatus) { if (status === "running") return "LIVE NOW"; const date = new Date(value); if (!value || !Number.isFinite(date.getTime())) return "DATE TBD"; if (status === "finished") return date.toLocaleDateString(undefined, { month: "short", day: "numeric" }); return date.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" }); }
-function startsIn(value: string) { const timestamp = new Date(value).getTime(); if (!value || !Number.isFinite(timestamp)) return "TBD"; const minutes = Math.max(0, Math.ceil((timestamp - Date.now()) / 60_000)); if (minutes < 60) return `${minutes}M`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours}H ${minutes % 60}M`; return `${Math.floor(hours / 24)}D ${hours % 24}H`; }
-function StarRating({ value }: { value: number }) { return <span className={`stars stars-${value}`} aria-label={`${value} out of 5 importance stars`}>{"★".repeat(value)}<i>{"★".repeat(5 - value)}</i></span>; }
+
+function timeLabel(value: string, status: MatchStatus) {
+  if (status === "running") return "LIVE NOW";
+  const date = new Date(value);
+  if (!value || !Number.isFinite(date.getTime())) return "DATE TBD";
+  if (status === "finished") return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return date.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function startsIn(value: string) {
+  const timestamp = new Date(value).getTime();
+  if (!value || !Number.isFinite(timestamp)) return "TBD";
+  const minutes = Math.max(0, Math.ceil((timestamp - Date.now()) / 60_000));
+  if (minutes < 60) return `${minutes}M`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}H ${minutes % 60}M`;
+  return `${Math.floor(hours / 24)}D ${hours % 24}H`;
+}
+
+function StarRating({ value }: { value: number }) {
+  return <span className={`stars stars-${value}`} aria-label={`${value} out of 5 importance stars`}>{"★".repeat(value)}<i>{"★".repeat(5 - value)}</i></span>;
+}
+
+function LiveStreams({ matches }: { matches: Match[] }) {
+  const live = matches.filter((match) => match.status === "running" && match.streams.length > 0);
+  if (!live.length) return null;
+  return <section className="live-streams"><span><b /> WATCH LIVE</span>{live.flatMap((match) => match.streams.map((stream) => <a href={stream.url} target="_blank" rel="noreferrer" key={`${match.id}-${stream.url}`}>{match.name} · {stream.language.toUpperCase()} ↗</a>))}</section>;
+}
+
 export function Matchboard({ matches: initialMatches, demo, view = "all" }: { matches: Match[]; demo: boolean; view?: MatchStatus | "all" }) {
-  const [matches, setMatches] = useState(initialMatches); const [tab, setTab] = useState<MatchStatus | "all">("all"); const [minimum, setMinimum] = useState(1); const [league, setLeague] = useState("all"); const [showMoreLeagues, setShowMoreLeagues] = useState(false);
-  const leagues = useMemo(() => [...new Set(matches.map((match) => match.league))].sort((a, b) => a.localeCompare(b)), [matches]); const liveLeagues = useMemo(() => new Set(matches.filter((match) => match.status === "running").map((match) => match.league)), [matches]); const priorityLeagues = useMemo(() => popularLeagues.filter((name) => leagues.includes(name)), [leagues]); const otherLeagues = useMemo(() => leagues.filter((name) => !popularLeagues.includes(name)), [leagues]); const activeView = view === "all" ? tab : view; const list = useMemo(() => matches.filter((match) => (activeView === "all" || match.status === activeView) && (league === "all" || match.league === league) && match.importance >= minimum), [matches, activeView, league, minimum]);
-  useEffect(() => { if (demo) return; const refresh = () => fetch("/api/matches").then((response) => response.ok ? response.json() : null).then((data) => { if (data?.matches) setMatches(data.matches); }).catch(() => undefined); refresh(); const timer = window.setInterval(refresh, 30_000); return () => window.clearInterval(timer); }, [demo]);
-  return <div className="shell"><header><a className="brand" href="/"><span>HOME</span>SPORTS</a><p>League of Legends esports, ranked by what matters.</p><div className="pulse"><b /> LIVE DATA</div></header>{demo && <aside>Demo data is shown. Add <code>PANDASCORE_API_KEY</code> to <code>.env.local</code> to load the live worldwide schedule.</aside>}<section className="hero"><div><span className="eyebrow">MATCH INTELLIGENCE</span><h1>The games worth<br /><em>watching.</em></h1></div><p>Every LoL competition in one board. Our importance rating brings international clashes, playoffs, and top-tier series to the surface.</p></section><nav className="filters" aria-label="Match filters"><div className="filter-left"><div className="match-tabs">{tabs.map((item) => <button className={tab === item.status ? "selected" : ""} onClick={() => setTab(item.status)} key={item.status}>{item.label}</button>)}</div><div className="league-filter"><span>LEAGUES</span><div className="league-chips"><button className={league === "all" ? "league-chip selected" : "league-chip"} onClick={() => setLeague("all")}>All{liveLeagues.size ? <i>{liveLeagues.size} live</i> : null}</button>{priorityLeagues.map((name) => <button className={league === name ? "league-chip selected" : "league-chip"} onClick={() => setLeague(name)} key={name}>{liveLeagues.has(name) && <b className="live-dot" />}{name}</button>)}{showMoreLeagues && otherLeagues.map((name) => <button className={league === name ? "league-chip selected" : "league-chip"} onClick={() => setLeague(name)} key={name}>{liveLeagues.has(name) && <b className="live-dot" />}{name}</button>)}{otherLeagues.length > 0 && <button className="more-leagues" onClick={() => setShowMoreLeagues((shown) => !shown)}>{showMoreLeagues ? "Less leagues −" : `More leagues +${otherLeagues.length}`}</button>}</div></div></div><label className="importance-filter">MIN. IMPORTANCE <select value={minimum} onChange={(event) => setMinimum(Number(event.target.value))}>{[1,2,3,4,5].map((star) => <option key={star} value={star}>{star} ★</option>)}</select></label></nav><section className="board"><div className="board-heading"><h2>{activeView === "running" ? "Live now" : activeView === "upcoming" ? "Upcoming matches" : activeView === "finished" ? "Recent results" : "The match board"}</h2><small>{list.length} matches · Updates every minute</small></div>{list.length ? <div className="cards">{list.map((match) => <article className={`match ${match.status}`} key={match.id}><div className="meta"><span className="status">{timeLabel(match.beginAt, match.status)}</span><span><a className="league-link" href={`/competition/${match.tournamentId}`}>{match.league}</a> · BO{match.bestOf}</span></div>{match.streams.length > 0 && <div className="card-streams">{match.streams.slice(0, 3).map((stream) => <a href={stream.url} target="_blank" rel="noreferrer" key={stream.url}><b>{match.status === "running" ? "WATCH LIVE" : "WATCH STREAM"}</b><span>{stream.official ? "Official" : stream.language}</span></a>)}</div>}<div className="teams">{match.opponents.slice(0, 2).map((team) => <div className="team" key={team.name}>{team.imageUrl ? <img src={team.imageUrl} alt="" /> : <span className="crest">{team.name.slice(0, 1)}</span>}<a className="team-name-link" href={`/teams/${team.id ?? encodeURIComponent(team.name)}`}>{team.name}</a>{match.status !== "upcoming" && <strong>{team.score ?? "—"}</strong>}</div>)}{match.status === "upcoming" && <div className="start-countdown">STARTS IN <b>{startsIn(match.beginAt)}</b></div>}</div><footer><span><StarRating value={match.importance} /> <small>{match.importanceReason}</small></span><a className="competition-link" href={`/competition/${match.tournamentId}`}>{match.tournament || match.serie}</a></footer>{(match.status === "upcoming" || match.status === "running") && match.opponents.length === 2 && match.odds?.[0] && <div className="odds-row"><span><small>{match.opponents[0].name}</small><b>{match.odds[0].home?.toFixed(2) ?? "—"}</b></span><span><small>{match.opponents[1].name}</small><b>{match.odds[0].away?.toFixed(2) ?? "—"}</b></span></div>}</article>)}</div> : <div className="empty">No matches meet this filter.</div>}</section></div>;
+  const [matches, setMatches] = useState(initialMatches);
+  const [tab, setTab] = useState<MatchStatus | "all">("all");
+  const [minimum, setMinimum] = useState(1);
+  const [league, setLeague] = useState("all");
+  const [showMoreLeagues, setShowMoreLeagues] = useState(false);
+  const leagues = useMemo(() => [...new Set(matches.map((match) => match.league))].sort((a, b) => a.localeCompare(b)), [matches]);
+  const liveLeagues = useMemo(() => new Set(matches.filter((match) => match.status === "running").map((match) => match.league)), [matches]);
+  const priorityLeagues = useMemo(() => popularLeagues.filter((name) => leagues.includes(name)), [leagues]);
+  const otherLeagues = useMemo(() => leagues.filter((name) => !popularLeagues.includes(name)), [leagues]);
+  const activeView = view === "all" ? tab : view;
+  const list = useMemo(() => matches.filter((match) => (activeView === "all" || match.status === activeView) && (league === "all" || match.league === league) && match.importance >= minimum), [matches, activeView, league, minimum]);
+
+  useEffect(() => {
+    if (demo) return;
+    const refresh = () => fetch("/api/matches").then((response) => response.ok ? response.json() : null).then((data) => { if (data?.matches) setMatches(data.matches); }).catch(() => undefined);
+    refresh();
+    const timer = window.setInterval(refresh, 30_000);
+    return () => window.clearInterval(timer);
+  }, [demo]);
+
+  return <div className="shell">
+    <header><a className="brand" href="/"><span>HOME</span>SPORTS</a><p>League of Legends esports, ranked by what matters.</p><div className="pulse"><b /> LIVE DATA</div></header>
+    <LiveStreams matches={matches} />
+    {demo && <aside>Demo data is shown. Add <code>PANDASCORE_API_KEY</code> to <code>.env.local</code> to load the live worldwide schedule.</aside>}
+    <section className="hero"><div><span className="eyebrow">MATCH INTELLIGENCE</span><h1>The games worth<br /><em>watching.</em></h1></div><p>Every LoL competition in one board. Our importance rating brings international clashes, playoffs, and top-tier series to the surface.</p></section>
+    <nav className="filters" aria-label="Match filters"><div className="filter-left"><div className="match-tabs">{tabs.map((item) => <button className={tab === item.status ? "selected" : ""} onClick={() => setTab(item.status)} key={item.status}>{item.label}</button>)}</div><div className="league-filter"><span>LEAGUES</span><div className="league-chips"><button className={league === "all" ? "league-chip selected" : "league-chip"} onClick={() => setLeague("all")}>All{liveLeagues.size ? <i>{liveLeagues.size} live</i> : null}</button>{priorityLeagues.map((name) => <button className={league === name ? "league-chip selected" : "league-chip"} onClick={() => setLeague(name)} key={name}>{liveLeagues.has(name) && <b className="live-dot" />}{name}</button>)}{showMoreLeagues && otherLeagues.map((name) => <button className={league === name ? "league-chip selected" : "league-chip"} onClick={() => setLeague(name)} key={name}>{liveLeagues.has(name) && <b className="live-dot" />}{name}</button>)}{otherLeagues.length > 0 && <button className="more-leagues" onClick={() => setShowMoreLeagues((shown) => !shown)}>{showMoreLeagues ? "Less leagues −" : `More leagues +${otherLeagues.length}`}</button>}</div></div></div><label className="importance-filter">MIN. IMPORTANCE <select value={minimum} onChange={(event) => setMinimum(Number(event.target.value))}>{[1, 2, 3, 4, 5].map((star) => <option key={star} value={star}>{star} ★</option>)}</select></label></nav>
+    <section className="board"><div className="board-heading"><h2>{activeView === "running" ? "Live now" : activeView === "upcoming" ? "Upcoming matches" : activeView === "finished" ? "Recent results" : "The match board"}</h2><small>{list.length} matches · Updates every minute</small></div>{list.length ? <div className="cards">{list.map((match) => <article className={`match ${match.status}`} key={match.id}><div className="meta"><span className="status">{timeLabel(match.beginAt, match.status)}</span><span><a className="league-link" href={`/competition/${match.tournamentId}`}>{match.league}</a> · BO{match.bestOf}</span></div><div className="teams">{match.opponents.slice(0, 2).map((team) => <div className="team" key={team.name}>{team.imageUrl ? <img src={team.imageUrl} alt="" /> : <span className="crest">{team.name.slice(0, 1)}</span>}<a className="team-name-link" href={`/teams/${team.id ?? encodeURIComponent(team.name)}`}>{team.name}</a>{match.status !== "upcoming" && <strong>{team.score ?? "—"}</strong>}</div>)}{match.status === "upcoming" && <div className="start-countdown">STARTS IN <b>{startsIn(match.beginAt)}</b></div>}</div><footer><span><StarRating value={match.importance} /> <small>{match.importanceReason}</small></span><a className="competition-link" href={`/competition/${match.tournamentId}`}>{match.tournament || match.serie}</a></footer>{(match.status === "upcoming" || match.status === "running") && match.opponents.length === 2 && match.odds?.[0] && <div className="odds-row"><span><small>{match.opponents[0].name}</small><b>{match.odds[0].home?.toFixed(2) ?? "—"}</b></span><span><small>{match.opponents[1].name}</small><b>{match.odds[0].away?.toFixed(2) ?? "—"}</b></span></div>}</article>)}</div> : <div className="empty">No matches meet this filter.</div>}</section>
+  </div>;
 }
