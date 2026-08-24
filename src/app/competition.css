@@ -25,7 +25,7 @@
 .history-row { display:grid; grid-template-columns:80px 1fr 75px; gap:12px; padding:14px 15px; border-top:1px solid var(--line); align-items:center; font-size:13px; }
 .history-row:first-child { border-top:0; }
 .history-row small { color:var(--dim); }
-.history-row b { text-align:right; }
+.history-row > span { display:flex; align-items:center; gap:14px; flex-wrap:wrap; min-width:0; }.history-row > span > a + a { margin-left:6px; }.history-row > b { display:flex; justify-content:flex-end; gap:3px; text-align:right; white-space:nowrap; }.history-row > b > span + span::before { content:"–"; color:var(--dim); margin-right:3px; }
 .team-search { display:flex; max-width:520px; margin-bottom:32px; }
 .team-search input { flex:1; background:var(--surface); color:var(--ink); border:1px solid var(--line); padding:12px; font:inherit; }
 .team-search button { background:var(--lime); color:#111; font-weight:bold; }
@@ -44,7 +44,7 @@
 .roster-player span { display:grid; gap:4px; }.roster-player small { color:var(--dim); }
 .roster-player .substitute-label { color:#fa9b52; font-weight:bold; letter-spacing:.5px; }
 .roster-player > img { width:38px; height:38px; object-fit:cover; border-radius:50%; }.roster-player .role-icon { position:absolute; right:12px; top:50%; width:22px; height:22px; object-fit:contain; border-radius:0; opacity:.9; transform:translateY(-50%); }
-.competition-label { display:flex; align-items:center; gap:5px; margin-top:5px; }.competition-label img { width:16px; height:16px; object-fit:contain; }
+.competition-label { display:flex; align-items:center; gap:5px; width:100%; margin-top:5px; }.competition-label img { width:16px; height:16px; object-fit:contain; }
 .history-row .winner { color:#55d66f; font-weight:bold; }
 @media (max-width:700px) {
   .competition-page { padding:24px 18px 60px; }
