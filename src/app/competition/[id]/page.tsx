@@ -15,6 +15,7 @@ async function panda<T>(path: string, token: string) {
 
 function resultFor(match: TournamentMatch, teamId?: number) { return match.results?.find((result) => result.team_id === teamId)?.score; }
 function roundName(match: BracketMatch) { return match.name?.split(":")[0]?.trim() || "Playoffs"; }
+function roundRank(label: string) { const value = label.toLowerCase(); if (value.includes("quarter")) return 10; if (value.includes("semi")) return 20; if (value.includes("final")) return 30; const number = value.match(/\d+/); return number ? Number(number[0]) : 50; }
 
 export default async function CompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,11 +45,11 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
   const title = tournament?.name ?? source?.tournament ?? source?.serie ?? "Competition";
   const league = tournament?.league?.name ?? source?.league ?? "COMPETITION";
   const logo = tournament?.image_url ?? source?.tournamentImageUrl ?? source?.leagueImageUrl;
-  const rounds = [...new Map(bracket.map((match) => [roundName(match), bracket.filter((item) => roundName(item) === roundName(match))])).entries()];
+  const rounds = [...new Map(bracket.map((match) => [roundName(match), bracket.filter((item) => roundName(item) === roundName(match))])).entries()].sort(([a, aMatches], [b, bMatches]) => { const aDate = Math.min(...aMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); const bDate = Math.min(...bMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); return (Number.isFinite(aDate) || Number.isFinite(bDate)) ? aDate - bDate : roundRank(a) - roundRank(b); });
   const finishedMatches = tournamentMatches.filter((match) => match.status === "finished").slice(0, 20);
 
   return <main className="competition-page">
-    <Link href="/competitions">← All competitions</Link>
+    <Link href="/">← Back to matches</Link>
     <div className="competition-heading">{logo ? <img src={logo} alt="" /> : <i>{title.slice(0, 1)}</i>}<div><p className="eyebrow">{league}</p><h1>{title}</h1></div></div>
     <p className="page-intro">Official standings, match history, and tournament bracket.</p>
 
