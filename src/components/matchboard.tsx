@@ -97,10 +97,13 @@ export function Matchboard({ matches: initialMatches, demo, view = "all" }: { ma
       card.querySelectorAll<HTMLElement>(".team").forEach((team, teamIndex) => {
         const target = list[index]?.opponents[teamIndex];
         if (!target?.id) return;
-        team.setAttribute("role", "link");
-        team.tabIndex = 0;
-        team.onclick = () => { window.location.href = `/teams/${target.id}`; };
-        team.onkeydown = (event) => { if (event.key === "Enter" || event.key === " ") window.location.href = `/teams/${target.id}`; };
+        const name = team.querySelector<HTMLElement>("b");
+        if (!name) return;
+        name.setAttribute("role", "link");
+        name.tabIndex = 0;
+        name.classList.add("team-name-link");
+        name.onclick = (event) => { event.stopPropagation(); window.location.href = `/teams/${target.id}`; };
+        name.onkeydown = (event) => { if (event.key === "Enter" || event.key === " ") window.location.href = `/teams/${target.id}`; };
       });
     });
   }, [list]);

@@ -33,7 +33,7 @@
 .team-profile { display:flex; gap:70px; padding:22px; background:var(--surface); border:1px solid var(--line); }
 .team-profile small { display:block; letter-spacing:1px; margin-bottom:10px; }
 .team-profile b { font-size:24px; }
-.team[role="link"] { cursor:pointer; }
+.team-name-link { cursor:pointer; }.team-name-link:hover { color:var(--lime); }
 .competition-card-link { cursor:pointer; }.competition-card-link:hover { color:var(--lime); }
 .team[role="link"]:hover b, .standing-team a:hover, .history-row a:hover { color:var(--lime); }
 .standing-team a, .history-row a { color:var(--ink); text-decoration:none; }
