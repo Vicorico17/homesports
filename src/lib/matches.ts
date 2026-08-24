@@ -23,7 +23,7 @@ export type Match = {
 };
 
 type PandaMatch = {
-  id: number; status: string; begin_at: string; name: string; number_of_games: number;
+  id: number; status: string; begin_at?: string | null; name: string; number_of_games: number;
   league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; image_url?: string | null; has_bracket?: boolean }; serie?: { full_name?: string; name?: string };
   opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[];
   results?: { score?: number; team_id?: number }[];
@@ -31,6 +31,12 @@ type PandaMatch = {
   streams_list?: { raw_url?: string; language?: string; official?: boolean }[];
   games?: { position: number; status: string; winner?: { id?: number | null } }[];
 };
+
+function usableStart(value?: string | null) {
+  if (!value) return "";
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && timestamp > 0 && new Date(timestamp).getUTCFullYear() >= 2000 ? value : "";
+}
 
 const topLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
 const international = ["world championship", "worlds", "mid-season invitational", "msi", "first stand", "esports world cup"];
@@ -56,7 +62,7 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
   return {
     id: match.id,
     status: match.status === "running" ? "running" : match.status === "finished" ? "finished" : requestedStatus,
-    beginAt: match.begin_at,
+    beginAt: usableStart(match.begin_at),
     name: match.name,
     league: match.league?.name ?? "League of Legends",
     leagueImageUrl: match.league?.image_url,
@@ -102,7 +108,9 @@ async function addPreMatchOdds(matches: Match[]) {
         const match = eligible.find((candidate) => {
         const teams = candidate.opponents.slice(0, 2).map((team) => oddsName(team.name));
         const sameTeams = teams.every((team) => eventTeams.some((eventTeam) => eventTeam.includes(team) || team.includes(eventTeam)));
-        const closeStart = Math.abs(new Date(candidate.beginAt).getTime() - new Date(event.date).getTime()) < 12 * 60 * 60 * 1000;
+        const candidateStart = new Date(candidate.beginAt).getTime();
+        const eventStart = new Date(event.date).getTime();
+        const closeStart = Number.isFinite(candidateStart) && Number.isFinite(eventStart) && Math.abs(candidateStart - eventStart) < 12 * 60 * 60 * 1000;
         return sameTeams && closeStart;
       });
       return match ? [{ event, match }] : [];
@@ -164,8 +172,10 @@ export async function getMatches(fresh = false): Promise<{ matches: Match[]; dem
     const sortedMatches = groups.flat().sort((a, b) => {
         const statusDifference = statusRank[a.status] - statusRank[b.status];
         if (statusDifference) return statusDifference;
-        if (a.status === "finished") return +new Date(b.beginAt) - +new Date(a.beginAt);
-        return +new Date(a.beginAt) - +new Date(b.beginAt);
+        const aTime = new Date(a.beginAt).getTime();
+        const bTime = new Date(b.beginAt).getTime();
+        if (a.status === "finished") return (Number.isFinite(bTime) ? bTime : -Infinity) - (Number.isFinite(aTime) ? aTime : -Infinity);
+        return (Number.isFinite(aTime) ? aTime : Infinity) - (Number.isFinite(bTime) ? bTime : Infinity);
       });
     return { matches: await addPreMatchOdds(sortedMatches), demo: false };
   } catch (error) {
