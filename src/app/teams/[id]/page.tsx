@@ -3,7 +3,7 @@ import { getMatches } from "@/lib/matches";
 
 type Player = { id: number; nickname?: string; name?: string; image_url?: string | null; role?: string; position?: string; active?: boolean; substitute?: boolean; is_substitute?: boolean; status?: string };
 type TeamMatch = { id: number; status: string; begin_at: string; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { team_id?: number; score?: number }[]; league?: { name?: string; image_url?: string | null }; tournament?: { name?: string } };
-const roleIcons: Record<string, string> = { top: "position-top.svg", jungle: "position-jungle.svg", mid: "position-middle.svg", middle: "position-middle.svg", bot: "position-bottom.svg", adc: "position-bottom.svg", support: "position-utility.svg", utility: "position-utility.svg" };
+const roleIcons: Record<string, string> = { top: "position-top.svg", jungle: "position-jungle.svg", jng: "position-jungle.svg", jg: "position-jungle.svg", mid: "position-middle.svg", middle: "position-middle.svg", bot: "position-bottom.svg", adc: "position-bottom.svg", carry: "position-bottom.svg", support: "position-utility.svg", sup: "position-utility.svg", utility: "position-utility.svg" };
 function roleIcon(role?: string) { const key = role?.toLowerCase() ?? ""; const file = Object.entries(roleIcons).find(([name]) => key.includes(name))?.[1]; return file ? `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-champ-select/global/default/svg/${file}` : undefined; }
 function isSub(player: Player) { const status = player.status?.toLowerCase() ?? ""; return player.substitute === true || player.is_substitute === true || player.active === false || status.includes("sub"); }
 
