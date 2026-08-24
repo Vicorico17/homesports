@@ -14,7 +14,7 @@ export type Match = {
   rescheduled: boolean;
   mapWinners: string[];
   serie: string;
-  opponents: { name: string; imageUrl?: string | null; score?: number }[];
+  opponents: { id?: number; name: string; imageUrl?: string | null; score?: number }[];
   bestOf: number;
   importance: number;
   importanceReason: string;
@@ -72,7 +72,7 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
     bestOf: match.number_of_games || 1,
     importance: stars,
     importanceReason: reason,
-    opponents: rawOpponents.map(({ opponent }) => ({ name: opponent?.name ?? "TBD", imageUrl: opponent?.image_url, score: opponent?.id ? scoresByTeam.get(opponent.id) : undefined }))
+    opponents: rawOpponents.map(({ opponent }) => ({ id: opponent?.id, name: opponent?.name ?? "TBD", imageUrl: opponent?.image_url, score: opponent?.id ? scoresByTeam.get(opponent.id) : undefined }))
   };
 }
 
@@ -136,9 +136,9 @@ async function addPreMatchOdds(matches: Match[]) {
 }
 
 const demo: Match[] = [
-  { id: 1, status: "running", beginAt: new Date().toISOString(), name: "T1 vs Gen.G", league: "LCK", tournament: "Season Playoffs", tournamentId: 1, hasBracket: true, streams: [], rescheduled: false, mapWinners: ["T1", "Gen.G"], serie: "LCK 2026", bestOf: 5, importance: 4, importanceReason: "Top-league playoffs", opponents: [{ name: "T1", score: 1 }, { name: "Gen.G", score: 1 }] },
-  { id: 2, status: "upcoming", beginAt: new Date(Date.now() + 7_200_000).toISOString(), name: "G2 Esports vs Karmine Corp", league: "LEC", tournament: "Summer Split", tournamentId: 2, hasBracket: false, streams: [], rescheduled: false, mapWinners: [], serie: "LEC 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "G2 Esports" }, { name: "Karmine Corp" }] },
-  { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, mapWinners: ["Bilibili Gaming", "Bilibili Gaming"], serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ name: "Bilibili Gaming", score: 2 }, { name: "Top Esports", score: 0 }] }
+  { id: 1, status: "running", beginAt: new Date().toISOString(), name: "T1 vs Gen.G", league: "LCK", tournament: "Season Playoffs", tournamentId: 1, hasBracket: true, streams: [], rescheduled: false, mapWinners: ["T1", "Gen.G"], serie: "LCK 2026", bestOf: 5, importance: 4, importanceReason: "Top-league playoffs", opponents: [{ id: 101, name: "T1", score: 1 }, { id: 102, name: "Gen.G", score: 1 }] },
+  { id: 2, status: "upcoming", beginAt: new Date(Date.now() + 7_200_000).toISOString(), name: "G2 Esports vs Karmine Corp", league: "LEC", tournament: "Summer Split", tournamentId: 2, hasBracket: false, streams: [], rescheduled: false, mapWinners: [], serie: "LEC 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ id: 103, name: "G2 Esports" }, { id: 104, name: "Karmine Corp" }] },
+  { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, mapWinners: ["Bilibili Gaming", "Bilibili Gaming"], serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ id: 105, name: "Bilibili Gaming", score: 2 }, { id: 106, name: "Top Esports", score: 0 }] }
 ];
 
 export async function getMatches(fresh = false): Promise<{ matches: Match[]; demo: boolean }> {
@@ -151,7 +151,13 @@ export async function getMatches(fresh = false): Promise<{ matches: Match[]; dem
     return ((await response.json()) as PandaMatch[]).map((match) => normalize(match, status));
   };
   try {
-    const groups = await Promise.all([request("running", "running"), request("upcoming", "upcoming", 1), request("upcoming", "upcoming", 2)]);
+    const groups = await Promise.all([
+      request("running", "running"),
+      request("upcoming", "upcoming", 1),
+      request("upcoming", "upcoming", 2),
+      request("past", "finished", 1),
+      request("past", "finished", 2)
+    ]);
     const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
     const sortedMatches = groups.flat().sort((a, b) => {
         const statusDifference = statusRank[a.status] - statusRank[b.status];
