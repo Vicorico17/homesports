@@ -82,6 +82,18 @@ export function Matchboard({ matches: initialMatches, demo, view = "all" }: { ma
   }, [list]);
   useEffect(() => {
     document.querySelectorAll<HTMLElement>(".match").forEach((card, index) => {
+      const competition = card.querySelector<HTMLElement>("footer > span:last-child");
+      const target = list[index];
+      if (!competition || !target?.tournamentId) return;
+      competition.setAttribute("role", "link");
+      competition.tabIndex = 0;
+      competition.classList.add("competition-card-link");
+      competition.onclick = () => { window.location.href = `/competition/${target.tournamentId}`; };
+      competition.onkeydown = (event) => { if (event.key === "Enter" || event.key === " ") window.location.href = `/competition/${target.tournamentId}`; };
+    });
+  }, [list]);
+  useEffect(() => {
+    document.querySelectorAll<HTMLElement>(".match").forEach((card, index) => {
       card.querySelectorAll<HTMLElement>(".team").forEach((team, teamIndex) => {
         const target = list[index]?.opponents[teamIndex];
         if (!target?.id) return;
