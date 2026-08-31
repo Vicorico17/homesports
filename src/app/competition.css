@@ -53,6 +53,9 @@
 .substitute-player { border-color:#76502e; }
 .competition-label { display:flex; align-items:center; gap:5px; width:100%; margin-top:5px; }.competition-label img { width:16px; height:16px; object-fit:contain; }
 .history-row .winner { color:#55d66f; font-weight:bold; }
+.history-row .competition-label { color:var(--dim); text-decoration:none; }
+.history-row a.competition-label:hover { color:var(--lime); }
+.history-row .live-label { color:var(--orange); }
 @media (max-width:700px) {
   .competition-page { padding:24px 18px 60px; }
   .competition-list { grid-template-columns:1fr; }
