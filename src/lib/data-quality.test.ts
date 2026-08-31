@@ -10,6 +10,7 @@ test("rejects placeholder and malformed dates", () => {
 
 test("maps only recognized roster roles", () => {
   assert.equal(canonicalRole("Jungler"), "jungle");
+  assert.equal(canonicalRole("jun"), "jungle");
   assert.equal(canonicalRole("Bot Lane"), "adc");
   assert.equal(canonicalRole("Coach"), undefined);
 });

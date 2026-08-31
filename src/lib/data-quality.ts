@@ -11,7 +11,7 @@ export function validDate(value?: string | null) {
 export function canonicalRole(value?: string | null) {
   const role = normalizedLabel(value).replace(/\s/g, "");
   if (/^(top|toplane|toplaner)$/.test(role)) return "top";
-  if (/^(jungle|jungler|jng|jg)$/.test(role)) return "jungle";
+  if (/^(jungle|jungler|jung|jun|jng|jg)$/.test(role)) return "jungle";
   if (/^(mid|middle|midlane|midlaner)$/.test(role)) return "mid";
   if (/^(bot|bottom|botlane|adc|carry)$/.test(role)) return "adc";
   if (/^(support|sup|utility)$/.test(role)) return "support";

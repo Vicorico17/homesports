@@ -18,6 +18,7 @@
 .competition-section { margin-top:34px; }
 .competition-section > h2 { margin-bottom:14px; }
 .sub-roster-heading { margin-top:28px !important; border-top:1px solid var(--line); padding-top:22px; }
+.roster-warning { color:#d6a66d; font-size:12px; line-height:1.5; margin:8px 0 14px; }
 .standings, .history-list { border:1px solid var(--line); background:var(--surface); }
 .standing-row { display:grid; grid-template-columns:34px minmax(180px,1fr) 70px 70px 110px; gap:12px; align-items:center; padding:12px 15px; border-top:1px solid var(--line); font-size:13px; }
 .standing-row:first-child { border-top:0; }
