@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getMatches } from "@/lib/matches";
 import { canonicalRole } from "@/lib/data-quality";
-import { FollowTeamButton, TeamCalendarLink } from "@/components/follow-team-button";
+import { AuthCalendarControl, FollowTeamButton } from "@/components/follow-team-button";
 import { redirect } from "next/navigation";
 
 type Player = { id: number | string; nickname?: string; name?: string; image_url?: string | null; role?: string; position?: string; lane?: string; role_name?: string; active?: boolean; substitute?: boolean; is_substitute?: boolean; status?: string };
@@ -16,16 +16,28 @@ function displayTime(value?: string | null) { if (!value) return "Time TBD"; con
 function roleRank(player: Player) { const role = canonicalRole(playerRole(player)); return role ? ["top", "jungle", "mid", "adc", "support"].indexOf(role) : -1; }
 function normalizedName(value?: string) { return value?.toLowerCase().replace(/[^a-z0-9]/g, "") ?? ""; }
 function truthy(value?: string | boolean) { return value === true || value === "1" || value === "true" || value === "yes"; }
+function decodeHtml(value: string) { return value.replace(/&amp;/g, "&").replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"').trim(); }
+async function getRenderedRoster(teamName: string, pandaPlayers: Player[]) {
+  const params = new URLSearchParams({ action: "parse", format: "json", page: teamName, prop: "text" });
+  const response = await fetch(`https://lol.fandom.com/api.php?${params.toString()}`, { next: { revalidate: 21600 } });
+  if (!response.ok) return null;
+  const payload = await response.json() as { parse?: { text?: { "*"?: string } } };
+  const html = payload.parse?.text?.["*"] ?? "";
+  const table = html.match(/<table class="[^"]*team-members-current[^"]*">([\s\S]*?)<\/table>/)?.[1] ?? "";
+  const rows = [...table.matchAll(/<td class="team-members-player"[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>[\s\S]*?<\/td>[\s\S]*?<td class="team-members-irlname"[^>]*>[\s\S]*?<\/td>[\s\S]*?<td class="team-members-role"[^>]*>[\s\S]*?<span title="([^"]+)"/g)];
+  if (!rows.length) return null;
+  return rows.map((row, index) => { const nickname = decodeHtml(row[1]); const role = decodeHtml(row[2]); const match = pandaPlayers.find((player) => normalizedName(player.nickname ?? player.name) === normalizedName(nickname)); return { ...(match ?? {}), id: match?.id ?? `leaguepedia-rendered-${normalizedName(nickname)}-${index}`, nickname, role, substitute: false, is_substitute: false }; });
+}
 async function getVerifiedRoster(teamName: string, pandaPlayers: Player[]) {
   try {
     const params = new URLSearchParams({ action: "cargoquery", format: "json", tables: "ListplayerCurrent", fields: "Team,Link,Role,IsSubstitute,IsTrainee", where: `Team="${teamName.replace(/"/g, "\\\"")}"`, limit: "50" });
     const response = await fetch(`https://lol.fandom.com/api.php?${params.toString()}`, { next: { revalidate: 1800 } });
-    if (!response.ok) return null;
+    if (!response.ok) return getRenderedRoster(teamName, pandaPlayers);
     const payload = await response.json() as { cargoquery?: LeaguepediaRow[] };
     const rows = payload.cargoquery ?? [];
-    if (!rows.length) return null;
+    if (!rows.length) return getRenderedRoster(teamName, pandaPlayers);
     return rows.flatMap((row, index) => { const fields = row.title ?? row.fields ?? {}; const nickname = fields.Link?.trim(); if (!nickname) return []; const match = pandaPlayers.find((player) => normalizedName(player.nickname ?? player.name) === normalizedName(nickname)); const substitute = truthy(fields.IsSubstitute) || truthy(fields.IsTrainee); return [{ ...(match ?? {}), id: match?.id ?? `leaguepedia-${normalizedName(nickname)}-${index}`, nickname, role: fields.Role ?? match?.role, substitute, is_substitute: substitute }]; });
-  } catch { return null; }
+  } catch { return getRenderedRoster(teamName, pandaPlayers); }
 }
 export const revalidate = 300;
 
@@ -65,6 +77,6 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   const recent = teamMatches.filter((match) => match.status === "finished"); const form = recent.slice(0, 5).map((match) => { const current = match.results?.find((result) => result.team_id === Number(id)); const other = match.results?.find((result) => result.team_id !== Number(id)); return current && other && (current.score ?? 0) > (other.score ?? 0) ? "W" : "L"; });
   const renderPlayer = (player: Player, substitute = false, fallbackRole?: string) => { const position = substitute ? (playerRole(player) || fallbackRole) : fallbackRole || playerRole(player); const playerName = player.nickname ?? player.name ?? "Unknown player"; const icon = roleIcon(position); return <div className={`roster-player${substitute ? " substitute-player" : ""}`} key={player.id}>{player.image_url ? <img src={player.image_url} alt="" /> : <i>{playerName.slice(0, 1)}</i>}<span><b title={playerName}>{playerName}</b>{icon ? <img className="role-icon" src={icon} alt={`${position} role`} title={position ?? "Role"} /> : null}</span>{substitute && <small className="substitute-label">SUB</small>}</div>; };
   const mainRoles = ["top", "jungle", "mid", "adc", "support"];
-  const followControl = <div className="team-actions"><FollowTeamButton teamId={id} teamName={teamName ?? `Team ${id}`} /><TeamCalendarLink teamId={id} /></div>;
+  const followControl = <div className="team-actions"><FollowTeamButton teamId={id} teamName={teamName ?? `Team ${id}`} /><AuthCalendarControl teamId={id} /></div>;
   return <main className="competition-page"><Link href="/">← Back to matches</Link><div className="team-heading">{teamImage ? <img src={teamImage} alt="" /> : <i>{(teamName ?? "T").slice(0, 1)}</i>}<h1>{teamName ?? `Team ${id}`}</h1>{followControl}</div><section className="team-profile"><div><small>RECENT FORM</small><div className="large-form">{form.map((result, index) => <i className={result === "W" ? "win" : "loss"} key={index}>{result}</i>)}{!form.length && <span>No completed matches yet.</span>}</div></div></section><section className="competition-section"><h2>{rosterVerified ? "Main roster" : "Active roster"}</h2>{!rosterVerified && <p className="roster-warning">The source does not identify a verified starting five or substitutes, so all active players are shown without guessing.</p>}{displayedRoster.length ? <div className="roster">{displayedRoster.map((player, index) => renderPlayer(player, false, rosterVerified ? mainRoles[index] : canonicalRole(playerRole(player))))}</div> : <p className="empty">The roster is not available yet.</p>}{substitutes.length ? <><h2 className="sub-roster-heading">Substitutes</h2><div className="roster">{substitutes.map((player) => renderPlayer(player, true))}</div></> : null}</section><section className="competition-section"><h2>Upcoming games</h2>{upcoming.length ? <div className="history-list">{upcoming.map((match) => <div className="history-row upcoming-row" key={match.id}><span className="history-date"><b>{displayDate(match.begin_at)}</b><small>{displayTime(match.begin_at)}</small>{match.tournament?.id ? <a className="competition-label" href={`/competition/${match.tournament.id}`}>{match.tournament.image_url || match.league?.image_url ? <img src={match.tournament.image_url ?? match.league?.image_url ?? ""} alt="" /> : null}{match.league?.name ?? match.tournament.name ?? "Competition"}</a> : <small className="competition-label">{match.league?.name ?? match.tournament?.name ?? ""}</small>}</span><span className="history-teams">{(match.opponents ?? []).map((entry) => <a href={`/teams/${entry.opponent?.id}`} key={entry.opponent?.id ?? entry.opponent?.name}>{entry.opponent?.image_url ? <img src={entry.opponent.image_url} alt="" /> : <i>{(entry.opponent?.name ?? "T").slice(0, 1)}</i>}{entry.opponent?.name ?? "TBD"}</a>)}</span><b className={match.status === "running" ? "live-label" : ""}>{match.status === "running" ? "LIVE" : "VS"}</b></div>)}</div> : <p className="empty">No upcoming games are scheduled for this team yet.</p>}</section><section className="competition-section"><h2>Last games played</h2>{recent.length ? <div className="history-list">{recent.map((match) => { const results = match.results ?? []; const current = results.find((result) => result.team_id === Number(id)); const won = current && results.some((result) => result.team_id !== Number(id) && (current.score ?? 0) > (result.score ?? 0)); return <div className="history-row" key={match.id}><span className="history-date"><b>{displayDate(match.begin_at)}</b><small className="competition-label">{match.league?.image_url ? <img src={match.league.image_url} alt="" /> : null}{match.league?.name ?? match.tournament?.name ?? ""}</small></span><span className="history-teams">{(match.opponents ?? []).map((entry) => { const opponentId = entry.opponent?.id; const opponentResult = results.find((result) => result.team_id === opponentId); const opponentWon = opponentResult && current ? (opponentResult.score ?? 0) > (current.score ?? 0) : false; return <a className={opponentWon ? "winner" : ""} href={`/teams/${opponentId}`} key={opponentId}>{entry.opponent?.image_url ? <img src={entry.opponent.image_url} alt="" /> : <i>{(entry.opponent?.name ?? "T").slice(0, 1)}</i>}{entry.opponent?.name ?? "TBD"}</a>; })}</span><b className={won ? "winner" : ""}>{results.map((result) => result.score ?? "—").join(" – ")}</b></div>; })}</div> : <p className="empty">No completed games found for this team yet.</p>}</section></main>;
 }

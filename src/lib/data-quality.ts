@@ -13,7 +13,7 @@ export function canonicalRole(value?: string | null) {
   if (/^(top|toplane|toplaner)$/.test(role)) return "top";
   if (/^(jungle|jungler|jung|jun|jng|jg)$/.test(role)) return "jungle";
   if (/^(mid|middle|midlane|midlaner)$/.test(role)) return "mid";
-  if (/^(bot|bottom|botlane|adc|carry)$/.test(role)) return "adc";
+  if (/^(bot|bottom|botlane|botlaner|adc|carry)$/.test(role)) return "adc";
   if (/^(support|sup|utility)$/.test(role)) return "support";
   return undefined;
 }
