@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Match, MatchStatus } from "@/lib/matches";
+import { FOLLOWED_TEAMS_EVENT, readFollowedTeams } from "@/components/follow-team-button";
 
-const tabs: { label: string; status: MatchStatus | "all" }[] = [
+type BoardView = MatchStatus | "all" | "following";
+const tabs: { label: string; status: BoardView }[] = [
   { label: "All matches", status: "all" },
+  { label: "Following", status: "following" },
   { label: "Live", status: "running" },
   { label: "Upcoming", status: "upcoming" },
 ];
@@ -34,7 +37,8 @@ function StarRating({ value }: { value: number }) {
 
 export function Matchboard({ matches: initialMatches, demo, view = "all" }: { matches: Match[]; demo: boolean; view?: MatchStatus | "all" }) {
   const [matches, setMatches] = useState(initialMatches);
-  const [tab, setTab] = useState<MatchStatus | "all">("all");
+  const [tab, setTab] = useState<BoardView>("all");
+  const [followedTeams, setFollowedTeams] = useState<string[]>([]);
   const [minimum, setMinimum] = useState(1);
   const [league, setLeague] = useState("all");
   const [showMoreLeagues, setShowMoreLeagues] = useState(false);
@@ -43,7 +47,15 @@ export function Matchboard({ matches: initialMatches, demo, view = "all" }: { ma
   const priorityLeagues = useMemo(() => popularLeagues.filter((name) => leagues.includes(name)), [leagues]);
   const otherLeagues = useMemo(() => leagues.filter((name) => !popularLeagues.includes(name)), [leagues]);
   const activeView = view === "all" ? tab : view;
-  const list = useMemo(() => matches.filter((match) => (activeView === "all" || match.status === activeView) && (league === "all" || match.league === league) && match.importance >= minimum), [matches, activeView, league, minimum]);
+  const list = useMemo(() => matches.filter((match) => (activeView === "all" || activeView === "following" || match.status === activeView) && (activeView !== "following" || match.opponents.some((team) => team.id && followedTeams.includes(String(team.id)))) && (league === "all" || match.league === league) && match.importance >= minimum), [matches, activeView, followedTeams, league, minimum]);
+
+  useEffect(() => {
+    const refreshFollowedTeams = () => setFollowedTeams(readFollowedTeams());
+    refreshFollowedTeams();
+    window.addEventListener(FOLLOWED_TEAMS_EVENT, refreshFollowedTeams);
+    window.addEventListener("storage", refreshFollowedTeams);
+    return () => { window.removeEventListener(FOLLOWED_TEAMS_EVENT, refreshFollowedTeams); window.removeEventListener("storage", refreshFollowedTeams); };
+  }, []);
 
   useEffect(() => {
     if (demo) return;
@@ -58,6 +70,6 @@ export function Matchboard({ matches: initialMatches, demo, view = "all" }: { ma
     {demo && <aside>Demo data is shown. Add <code>PANDASCORE_API_KEY</code> to <code>.env.local</code> to load the live worldwide schedule.</aside>}
     <section className="hero"><div><span className="eyebrow">MATCH INTELLIGENCE</span><h1>The games worth<br /><em>watching.</em></h1></div><p>Every LoL competition in one board. Our importance rating brings international clashes, playoffs, and top-tier series to the surface.</p></section>
     <nav className="filters" aria-label="Match filters"><div className="filter-left"><div className="match-tabs">{tabs.map((item) => <button className={tab === item.status ? "selected" : ""} onClick={() => setTab(item.status)} key={item.status}>{item.label}</button>)}</div><div className="league-filter"><span>LEAGUES</span><div className="league-chips"><button className={league === "all" ? "league-chip selected" : "league-chip"} onClick={() => setLeague("all")}>All{liveLeagues.size ? <i>{liveLeagues.size} live</i> : null}</button>{priorityLeagues.map((name) => <button className={league === name ? "league-chip selected" : "league-chip"} onClick={() => setLeague(name)} key={name}>{liveLeagues.has(name) && <b className="live-dot" />}{name}</button>)}{showMoreLeagues && otherLeagues.map((name) => <button className={league === name ? "league-chip selected" : "league-chip"} onClick={() => setLeague(name)} key={name}>{liveLeagues.has(name) && <b className="live-dot" />}{name}</button>)}{otherLeagues.length > 0 && <button className="more-leagues" onClick={() => setShowMoreLeagues((shown) => !shown)}>{showMoreLeagues ? "Less leagues −" : `More leagues +${otherLeagues.length}`}</button>}</div></div></div><label className="importance-filter">MIN. IMPORTANCE <select value={minimum} onChange={(event) => setMinimum(Number(event.target.value))}>{[1, 2, 3, 4, 5].map((star) => <option key={star} value={star}>{star} ★</option>)}</select></label></nav>
-    <section className="board"><div className="board-heading"><h2>{activeView === "running" ? "Live now" : activeView === "upcoming" ? "Upcoming matches" : activeView === "finished" ? "Recent results" : "The match board"}</h2><small>{list.length} matches · Updates every minute</small></div>{list.length ? <div className="cards">{list.map((match) => <article className={`match ${match.status}`} key={match.id}>{match.status === "running" && match.streams[0] && <a className="card-watch-link" href={match.streams[0].url} target="_blank" rel="noreferrer">WATCH LIVE · {match.streams[0].language.toUpperCase()} ↗</a>}<div className="meta"><span className="status">{timeLabel(match.beginAt, match.status)}</span><span><a className="league-link" href={`/competition/${match.tournamentId}`}>{match.league}</a> · BO{match.bestOf}</span></div><div className="teams">{match.opponents.slice(0, 2).map((team) => <div className="team" key={team.name}>{team.imageUrl ? <img src={team.imageUrl} alt="" /> : <span className="crest">{team.name.slice(0, 1)}</span>}<a className="team-name-link" href={`/teams/${team.id ?? encodeURIComponent(team.name)}`}>{team.name}</a>{match.status !== "upcoming" && <strong>{team.score ?? "—"}</strong>}</div>)}{match.status === "upcoming" && <div className="start-countdown">STARTS IN <b>{startsIn(match.beginAt)}</b></div>}</div><footer><span><StarRating value={match.importance} /> <small>{match.importanceReason}</small></span><a className="competition-link" href={`/competition/${match.tournamentId}`}>{match.tournament || match.serie}</a></footer>{(match.status === "upcoming" || match.status === "running") && match.opponents.length === 2 && match.odds?.[0] && <div className="odds-row"><span><small>{match.opponents[0].name}</small><b>{match.odds[0].home?.toFixed(2) ?? "—"}</b></span><span><small>{match.opponents[1].name}</small><b>{match.odds[0].away?.toFixed(2) ?? "—"}</b></span></div>}</article>)}</div> : <div className="empty">No matches meet this filter.</div>}</section>
+    <section className="board"><div className="board-heading"><h2>{activeView === "running" ? "Live now" : activeView === "upcoming" ? "Upcoming matches" : activeView === "finished" ? "Recent results" : activeView === "following" ? "Your teams" : "The match board"}</h2><small>{list.length} matches · Updates every minute</small></div>{list.length ? <div className="cards">{list.map((match) => <article className={`match ${match.status}`} key={match.id}>{match.status === "running" && match.streams[0] && <a className="card-watch-link" href={match.streams[0].url} target="_blank" rel="noreferrer">WATCH LIVE · {match.streams[0].language.toUpperCase()} ↗</a>}<div className="meta"><span className="status">{timeLabel(match.beginAt, match.status)}</span><span><a className="league-link" href={`/competition/${match.tournamentId}`}>{match.league}</a> · BO{match.bestOf}</span></div><div className="teams">{match.opponents.slice(0, 2).map((team) => <div className="team" key={team.name}>{team.imageUrl ? <img src={team.imageUrl} alt="" /> : <span className="crest">{team.name.slice(0, 1)}</span>}<a className="team-name-link" href={`/teams/${team.id ?? encodeURIComponent(team.name)}`}>{team.name}</a>{match.status !== "upcoming" && <strong>{team.score ?? "—"}</strong>}</div>)}{match.status === "upcoming" && <div className="start-countdown">STARTS IN <b>{startsIn(match.beginAt)}</b></div>}</div><footer><span><StarRating value={match.importance} /> <small>{match.importanceReason}</small></span><a className="competition-link" href={`/competition/${match.tournamentId}`}>{match.tournament || match.serie}</a></footer>{(match.status === "upcoming" || match.status === "running") && match.opponents.length === 2 && match.odds?.[0] && <div className="odds-row"><span><small>{match.opponents[0].name}</small><b>{match.odds[0].home?.toFixed(2) ?? "—"}</b></span><span><small>{match.opponents[1].name}</small><b>{match.odds[0].away?.toFixed(2) ?? "—"}</b></span></div>}</article>)}</div> : <div className="empty">No matches meet this filter.</div>}</section>
   </div>;
 }
