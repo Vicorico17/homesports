@@ -1,0 +1,9 @@
+.legal-footer {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 32px 40px;
+  color: var(--dim);
+  font-size: 10px;
+  line-height: 1.5;
+  border-top: 1px solid var(--line);
+}

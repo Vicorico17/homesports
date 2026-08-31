@@ -1,3 +1,5 @@
+import { validDate } from "@/lib/data-quality";
+
 export type MatchStatus = "running" | "upcoming" | "finished";
 
 export type Match = {
@@ -32,10 +34,8 @@ type PandaMatch = {
   games?: { position: number; status: string; winner?: { id?: number | null } }[];
 };
 
-function usableStart(value?: string | null) {
-  if (!value) return "";
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) && timestamp > 0 && new Date(timestamp).getUTCFullYear() >= 2000 ? value : "";
+export function usableStart(value?: string | null) {
+  return validDate(value) ? value as string : "";
 }
 
 const topLeagues = ["LCK", "LPL", "LEC", "LTA", "LCP"];
@@ -89,6 +89,7 @@ function oddsName(value: string) {
 }
 
 async function addPreMatchOdds(matches: Match[]) {
+  if (process.env.ENABLE_ODDS !== "true") return matches;
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) return matches;
   const bookmakers = process.env.ODDS_BOOKMAKERS ?? "Bet365,Unibet";

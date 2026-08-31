@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getMatches } from "@/lib/matches";
 import { getLeaguepediaCompetition } from "@/lib/leaguepedia";
+import { isVerifiedPlayoffMatch } from "@/lib/data-quality";
 
 type Standing = { rank?: number; team?: { id?: number; name?: string; image_url?: string | null }; wins?: number; losses?: number; points?: number; score?: number };
 type Tournament = { name?: string; image_url?: string | null; league?: { name?: string } };
@@ -49,9 +50,9 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
   const logo = tournament?.image_url ?? source?.tournamentImageUrl ?? source?.leagueImageUrl;
   const leaguepedia = await getLeaguepediaCompetition([source?.tournament ?? "", source?.serie ?? "", title]);
   const wikiRows: Standing[] = (leaguepedia?.standings ?? []).map((row) => ({ rank: Number(row.Place) || undefined, team: { name: row.Team }, wins: Number(row.WinSeries) || undefined, losses: Number(row.LossSeries) || undefined, points: Number(row.Points) || undefined }));
-  const wikiBracket: BracketMatch[] = (leaguepedia?.matches ?? []).filter((match) => `${match.Phase ?? ""} ${match.Round ?? ""}`.match(/playoff|knockout|quarter|semi|final|upper|lower|bracket/i)).map((match, index) => ({ id: Number(match.MatchId?.replace(/\D/g, "")) || index + 1, name: match.Round || match.Phase || "Playoffs", status: "finished", scheduled_at: match.DateTime_UTC ?? null, opponents: [{ opponent: { name: match.Team1 } }, { opponent: { name: match.Team2 } }], results: [{ score: Number(match.Team1Final ?? match.Team1Score) || 0 }, { score: Number(match.Team2Final ?? match.Team2Score) || 0 }] }));
+  const wikiBracket: BracketMatch[] = (leaguepedia?.matches ?? []).filter(isVerifiedPlayoffMatch).map((match, index) => ({ id: Number(match.MatchId?.replace(/\D/g, "")) || index + 1, name: match.Round || match.Phase || "Playoffs", status: match.Winner ? "finished" : "not_started", scheduled_at: match.DateTime_UTC ?? null, opponents: [{ opponent: { name: match.Team1 } }, { opponent: { name: match.Team2 } }], results: match.Winner ? [{ score: Number(match.Team1Final ?? match.Team1Score) || 0 }, { score: Number(match.Team2Final ?? match.Team2Score) || 0 }] : [] }));
   const bracketSource = wikiBracket.length ? wikiBracket : bracket;
-  const rows: Standing[] = wikiRows.length ? wikiRows : standings.length ? standings : [...new Map(localMatches.flatMap((match) => match.opponents.map((team) => [team.id, team]))).values()].map((team, index) => ({ rank: index + 1, team: { id: team.id, name: team.name, image_url: team.imageUrl } }));
+  const rows: Standing[] = wikiRows.length ? wikiRows : standings;
   const rounds = [...new Map(bracketSource.map((match) => [roundName(match), bracketSource.filter((item) => roundName(item) === roundName(match))])).entries()].sort(([a, aMatches], [b, bMatches]) => { const aDate = Math.min(...aMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); const bDate = Math.min(...bMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); return (Number.isFinite(aDate) || Number.isFinite(bDate)) ? aDate - bDate : roundRank(a) - roundRank(b); });
   const bracketSlots = Math.max(...rounds.map(([, matches]) => matches.length), 1);
   const finishedMatches = tournamentMatches.filter((match) => match.status === "finished").slice(0, 20);
@@ -59,7 +60,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
   return <main className="competition-page">
     <Link href="/">← Back to matches</Link>
     <div className="competition-heading">{logo ? <img src={logo} alt="" /> : <i>{title.slice(0, 1)}</i>}<div><p className="eyebrow">{league}</p><h1>{title}</h1></div></div>
-    <p className="page-intro">Official standings, match history, and tournament bracket.</p>
+    <p className="page-intro">Standings, match history, and verified tournament bracket data.{leaguepedia ? ` Competition data verified against ${leaguepedia.source}.` : " Unavailable sections are left empty rather than estimated."}</p>
 
     <section className="competition-section"><h2>Leaderboard</h2>{rows.length ? <div className="standings"><div className="standing-row heading"><span>#</span><span>TEAM</span><span>W–L</span><span>POINTS</span><span>FORM</span></div>{rows.map((row, index) => <div className="standing-row" key={row.team?.id ?? row.team?.name ?? index}><span>{row.rank ?? index + 1}</span><span className="standing-team">{row.team?.image_url ? <img src={row.team.image_url} alt="" /> : <i>{row.team?.name?.slice(0, 1)}</i>}<a href={`/teams/${row.team?.id}`}>{row.team?.name ?? "Unknown team"}</a></span><b>{row.wins ?? "—"}–{row.losses ?? "—"}</b><span>{row.points ?? row.score ?? "—"}</span><span className="form">{localMatches.filter((match) => match.status === "finished" && match.opponents.some((team) => team.id === row.team?.id)).slice(0, 5).map((match, resultIndex) => { const current = match.opponents.find((team) => team.id === row.team?.id); const other = match.opponents.find((team) => team.id !== row.team?.id); const win = current && other && (current.score ?? 0) > (other.score ?? 0); return <i className={win ? "win" : "loss"} key={resultIndex}>{win ? "W" : "L"}</i>; })}</span></div>)}</div> : <p className="empty">No standings are available for this competition yet.</p>}</section>
 
