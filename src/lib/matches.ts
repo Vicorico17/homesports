@@ -17,6 +17,7 @@ export type Match = {
   rescheduled: boolean;
   mapWinners: string[];
   serie: string;
+  serieId?: number;
   opponents: { id?: number; name: string; imageUrl?: string | null; score?: number }[];
   bestOf: number;
   importance: number;
@@ -26,7 +27,7 @@ export type Match = {
 
 type PandaMatch = {
   id: number; status: string; begin_at?: string | null; name: string; number_of_games: number;
-  league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; image_url?: string | null; has_bracket?: boolean }; serie?: { full_name?: string; name?: string };
+  league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; image_url?: string | null; has_bracket?: boolean }; serie?: { id?: number; full_name?: string; name?: string };
   opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[];
   results?: { score?: number; team_id?: number }[];
   rescheduled?: boolean;
@@ -77,6 +78,7 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
       return game.status === "finished" && name ? [name] : [];
     }),
     serie: match.serie?.full_name ?? match.serie?.name ?? "",
+    serieId: match.serie?.id,
     bestOf: match.number_of_games || 1,
     importance: stars,
     importanceReason: reason,
