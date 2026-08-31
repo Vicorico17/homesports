@@ -7,3 +7,5 @@
   line-height: 1.5;
   border-top: 1px solid var(--line);
 }
+.legal-footer a { color:var(--dim); margin-left:8px; }.legal-footer a:hover { color:var(--lime); }
+.privacy-copy { max-width:680px; color:#b8b7ae; line-height:1.7; }.privacy-copy p { margin:0 0 18px; }

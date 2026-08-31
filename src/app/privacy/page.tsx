@@ -1,0 +1,7 @@
+import Link from "next/link";
+
+export const metadata = { title: "Privacy — HomeSports" };
+
+export default function PrivacyPage() {
+  return <main className="competition-page"><Link href="/">← Back to matches</Link><div className="competition-heading"><div><p className="eyebrow">HOMESPORTS</p><h1>Privacy</h1></div></div><section className="privacy-copy"><p>HomeSports uses Vercel Web Analytics to understand aggregate page views and product actions such as opening a stream, following a team, or adding a calendar. We do not send email addresses, private messages, or payment details through analytics.</p><p>Followed teams are currently stored only in your browser using local storage. They are not associated with an account or sent to our servers. You can remove them by unfollowing teams or clearing site data.</p><p>Match, team, roster, and competition information is supplied by third-party esports data providers. Opening a stream or another external link takes you to that provider&apos;s service and privacy policy.</p><p>Questions or deletion requests can be directed through the project owner&apos;s published support channel. This notice will be updated before accounts, email alerts, or payments are introduced.</p></section></main>;
+}
