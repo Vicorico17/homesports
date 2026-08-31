@@ -16,6 +16,10 @@ Pre-match odds are disabled by default while product-policy approval is reviewed
 
 The app polls PandaScore through Next.js's server cache once a minute. It requests the running, upcoming and finished endpoints, which is roughly 180 API calls/hour—well inside the free plan's 1,000-request hourly cap.
 
+Passwordless login is scaffolded with Supabase. To enable it, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, then configure the production site and `/login` redirect URLs in Supabase Auth.
+
+See [TODO.md](./TODO.md) for the prioritized product, reliability, account, alert, and revenue work.
+
 ## Importance rating
 
 The rules live in `src/lib/matches.ts` and are intentionally transparent:
