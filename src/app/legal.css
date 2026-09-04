@@ -7,5 +7,10 @@
   line-height: 1.5;
   border-top: 1px solid var(--line);
 }
-.legal-footer a { color:var(--dim); margin-left:8px; }.legal-footer a:hover { color:var(--lime); }
+.legal-footer span { white-space:nowrap; }.legal-footer a { color:var(--dim); margin-left:8px; }.legal-footer a:hover { color:var(--lime); }
 .privacy-copy { max-width:680px; color:#b8b7ae; line-height:1.7; }.privacy-copy p { margin:0 0 18px; }
+.privacy-copy a, .status-page a { color:var(--lime); }
+.status-page { max-width:760px; min-height:70vh; margin:0 auto; padding:clamp(64px,12vw,140px) 32px; }
+.status-page h1 { font-size:clamp(42px,7vw,76px); }
+.status-page > p:not(.eyebrow) { max-width:520px; color:var(--dim); line-height:1.6; }
+.status-page button, .status-page a { display:inline-block; margin:18px 14px 0 0; padding:11px 15px; border:1px solid var(--lime); border-radius:3px; color:var(--lime); text-decoration:none; }

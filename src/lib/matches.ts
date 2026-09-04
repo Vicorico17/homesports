@@ -25,6 +25,14 @@ export type Match = {
   odds?: { bookmaker: string; home?: number; away?: number; updatedAt?: string }[];
 };
 
+export type MatchFeed = {
+  matches: Match[];
+  demo: boolean;
+  source: "PandaScore" | "Demo";
+  sourceStatus: "healthy" | "not-configured" | "unavailable";
+  updatedAt: string;
+};
+
 type PandaMatch = {
   id: number; status: string; begin_at?: string | null; name: string; number_of_games: number;
   league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; image_url?: string | null; has_bracket?: boolean }; serie?: { id?: number; full_name?: string; name?: string };
@@ -154,9 +162,9 @@ const demo: Match[] = [
   { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, mapWinners: ["Bilibili Gaming", "Bilibili Gaming"], serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ id: 105, name: "Bilibili Gaming", score: 2 }, { id: 106, name: "Top Esports", score: 0 }] }
 ];
 
-export async function getMatches(fresh = false): Promise<{ matches: Match[]; demo: boolean }> {
+export async function getMatches(fresh = false): Promise<MatchFeed> {
   const token = process.env.PANDASCORE_API_KEY;
-  if (!token) return { matches: demo, demo: true };
+  if (!token) return { matches: demo, demo: true, source: "Demo", sourceStatus: "not-configured", updatedAt: new Date().toISOString() };
   const request = async (path: string, status: MatchStatus, page = 1) => {
     const sort = path === "past" ? "-begin_at" : "begin_at";
     const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, fresh ? { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" } : { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 30 } });
@@ -180,9 +188,9 @@ export async function getMatches(fresh = false): Promise<{ matches: Match[]; dem
         if (a.status === "finished") return (Number.isFinite(bTime) ? bTime : -Infinity) - (Number.isFinite(aTime) ? aTime : -Infinity);
         return (Number.isFinite(aTime) ? aTime : Infinity) - (Number.isFinite(bTime) ? bTime : Infinity);
       });
-    return { matches: await addPreMatchOdds(sortedMatches), demo: false };
+    return { matches: await addPreMatchOdds(sortedMatches), demo: false, source: "PandaScore", sourceStatus: "healthy", updatedAt: new Date().toISOString() };
   } catch (error) {
     console.error(error);
-    return { matches: demo, demo: true };
+    return { matches: demo, demo: true, source: "Demo", sourceStatus: "unavailable", updatedAt: new Date().toISOString() };
   }
 }

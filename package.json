@@ -2,12 +2,13 @@
   "name": "homesports",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint . --max-warnings=0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

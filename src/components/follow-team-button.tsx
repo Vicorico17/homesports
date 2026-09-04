@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { track } from "@vercel/analytics";
-import { getAuthClient } from "@/lib/auth-client";
 
 export const FOLLOWED_TEAMS_KEY = "homesports:followed-teams";
 export const FOLLOWED_TEAMS_EVENT = "homesports:followed-teams-changed";
@@ -18,9 +17,7 @@ export function readFollowedTeams() {
 }
 
 export function FollowTeamButton({ teamId, teamName }: { teamId: string; teamName: string }) {
-  const [followed, setFollowed] = useState(false);
-
-  useEffect(() => setFollowed(readFollowedTeams().includes(teamId)), [teamId]);
+  const [followed, setFollowed] = useState(() => readFollowedTeams().includes(teamId));
 
   function toggleFollow() {
     const current = new Set(readFollowedTeams());
@@ -39,14 +36,5 @@ export function TeamCalendarLink({ teamId }: { teamId: string }) {
 }
 
 export function AuthCalendarControl({ teamId }: { teamId: string }) {
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const auth = getAuthClient();
-  useEffect(() => {
-    if (!auth) { setSignedIn(false); return; }
-    auth.auth.getUser().then(({ data }) => setSignedIn(Boolean(data.user)));
-    const { data } = auth.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session?.user)));
-    return () => data.subscription.unsubscribe();
-  }, [auth]);
-  if (signedIn === null) return null;
-  return signedIn ? <TeamCalendarLink teamId={teamId} /> : <a className="team-calendar-link" href="/login">Sign in</a>;
+  return <TeamCalendarLink teamId={teamId} />;
 }

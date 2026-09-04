@@ -3,10 +3,10 @@ import { getMatches } from "@/lib/matches";
 import { canonicalRole } from "@/lib/data-quality";
 import { AuthCalendarControl, FollowTeamButton } from "@/components/follow-team-button";
 import { redirect } from "next/navigation";
+import { normalizedPlayerName, parseCargoRoster, parseRenderedRosterHtml, type LeaguepediaRosterRow, type RosterPlayer } from "@/lib/roster";
 
-type Player = { id: number | string; nickname?: string; name?: string; image_url?: string | null; role?: string; position?: string; lane?: string; role_name?: string; active?: boolean; substitute?: boolean; is_substitute?: boolean; status?: string };
+type Player = RosterPlayer;
 type TeamMatch = { id: number; status: string; begin_at?: string | null; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { team_id?: number; score?: number }[]; league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; image_url?: string | null } };
-type LeaguepediaRow = { title?: { Team?: string; Link?: string; Role?: string; IsSubstitute?: string | boolean; IsTrainee?: string | boolean }; fields?: { Team?: string; Link?: string; Role?: string; IsSubstitute?: string | boolean; IsTrainee?: string | boolean } };
 const roleIcons: Record<string, string> = { top: "position-top.svg", jungle: "position-jungle.svg", jung: "position-jungle.svg", jungler: "position-jungle.svg", jun: "position-jungle.svg", jng: "position-jungle.svg", jg: "position-jungle.svg", mid: "position-middle.svg", middle: "position-middle.svg", bot: "position-bottom.svg", adc: "position-bottom.svg", carry: "position-bottom.svg", support: "position-utility.svg", sup: "position-utility.svg", utility: "position-utility.svg" };
 function roleIcon(role?: string) { const key = role?.toLowerCase().replace(/[^a-z]/g, "") ?? ""; const file = Object.entries(roleIcons).find(([name]) => key.includes(name))?.[1]; return file ? `/icons/${file}` : undefined; }
 function isSub(player: Player) { const status = player.status?.toLowerCase() ?? ""; return player.substitute === true || player.is_substitute === true || status.includes("sub"); }
@@ -14,29 +14,23 @@ function playerRole(player: Player) { return player.position || player.role || p
 function displayDate(value?: string | null) { if (!value) return "Date TBD"; const date = new Date(value); return Number.isFinite(date.getTime()) && date.getUTCFullYear() >= 2000 ? date.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Date TBD"; }
 function displayTime(value?: string | null) { if (!value) return "Time TBD"; const date = new Date(value); return Number.isFinite(date.getTime()) && date.getUTCFullYear() >= 2000 ? date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "Time TBD"; }
 function roleRank(player: Player) { const role = canonicalRole(playerRole(player)); return role ? ["top", "jungle", "mid", "adc", "support"].indexOf(role) : -1; }
-function normalizedName(value?: string) { return value?.toLowerCase().replace(/[^a-z0-9]/g, "") ?? ""; }
-function truthy(value?: string | boolean) { return value === true || value === "1" || value === "true" || value === "yes"; }
-function decodeHtml(value: string) { return value.replace(/&amp;/g, "&").replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"').trim(); }
 async function getRenderedRoster(teamName: string, pandaPlayers: Player[]) {
   const params = new URLSearchParams({ action: "parse", format: "json", page: teamName, prop: "text" });
   const response = await fetch(`https://lol.fandom.com/api.php?${params.toString()}`, { next: { revalidate: 21600 } });
   if (!response.ok) return null;
   const payload = await response.json() as { parse?: { text?: { "*"?: string } } };
-  const html = payload.parse?.text?.["*"] ?? "";
-  const table = html.match(/<table class="[^"]*team-members-current[^"]*">([\s\S]*?)<\/table>/)?.[1] ?? "";
-  const rows = [...table.matchAll(/<td class="team-members-player"[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>[\s\S]*?<\/td>[\s\S]*?<td class="team-members-irlname"[^>]*>[\s\S]*?<\/td>[\s\S]*?<td class="team-members-role"[^>]*>[\s\S]*?<span title="([^"]+)"/g)];
-  if (!rows.length) return null;
-  return rows.map((row, index) => { const nickname = decodeHtml(row[1]); const role = decodeHtml(row[2]); const match = pandaPlayers.find((player) => normalizedName(player.nickname ?? player.name) === normalizedName(nickname)); return { ...(match ?? {}), id: match?.id ?? `leaguepedia-rendered-${normalizedName(nickname)}-${index}`, nickname, role, substitute: false, is_substitute: false }; });
+  const players = parseRenderedRosterHtml(payload.parse?.text?.["*"] ?? "", pandaPlayers);
+  return players.length ? players : null;
 }
 async function getVerifiedRoster(teamName: string, pandaPlayers: Player[]) {
   try {
     const params = new URLSearchParams({ action: "cargoquery", format: "json", tables: "ListplayerCurrent", fields: "Team,Link,Role,IsSubstitute,IsTrainee", where: `Team="${teamName.replace(/"/g, "\\\"")}"`, limit: "50" });
     const response = await fetch(`https://lol.fandom.com/api.php?${params.toString()}`, { next: { revalidate: 1800 } });
     if (!response.ok) return getRenderedRoster(teamName, pandaPlayers);
-    const payload = await response.json() as { cargoquery?: LeaguepediaRow[] };
+    const payload = await response.json() as { cargoquery?: LeaguepediaRosterRow[] };
     const rows = payload.cargoquery ?? [];
     if (!rows.length) return getRenderedRoster(teamName, pandaPlayers);
-    return rows.flatMap((row, index) => { const fields = row.title ?? row.fields ?? {}; const nickname = fields.Link?.trim(); if (!nickname) return []; const match = pandaPlayers.find((player) => normalizedName(player.nickname ?? player.name) === normalizedName(nickname)); const substitute = truthy(fields.IsSubstitute) || truthy(fields.IsTrainee); return [{ ...(match ?? {}), id: match?.id ?? `leaguepedia-${normalizedName(nickname)}-${index}`, nickname, role: fields.Role ?? match?.role, substitute, is_substitute: substitute }]; });
+    return parseCargoRoster(rows, pandaPlayers);
   } catch { return getRenderedRoster(teamName, pandaPlayers); }
 }
 export const revalidate = 300;
@@ -45,11 +39,11 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   const { id } = await params; const { matches } = await getMatches(); const localMatches = matches.filter((match) => match.opponents.some((team) => String(team.id) === id)); const localTeam = localMatches.flatMap((match) => match.opponents).find((opponent) => String(opponent.id) === id);
   let teamName = localTeam?.name; let teamImage = localTeam?.imageUrl; let players: Player[] = []; let teamMatches: TeamMatch[] = []; const token = process.env.PANDASCORE_API_KEY;
   if (token) { const headers = { Authorization: `Bearer ${token}` }; const [teamResponse, matchesResponse] = await Promise.all([fetch(`https://api.pandascore.co/teams/${id}`, { headers, next: { revalidate: 300 } }), fetch(`https://api.pandascore.co/teams/${id}/matches?sort=-begin_at&per_page=20`, { headers, next: { revalidate: 60 } })]); if (teamResponse.ok) { const profile = await teamResponse.json() as { name?: string; image_url?: string | null; players?: Player[] }; teamName = profile.name ?? teamName; teamImage = profile.image_url ?? teamImage; players = profile.players ?? []; } if (matchesResponse.ok) teamMatches = await matchesResponse.json() as TeamMatch[]; }
-  if (token && localTeam?.name && teamName && normalizedName(localTeam.name) !== normalizedName(teamName)) {
+  if (token && localTeam?.name && teamName && normalizedPlayerName(localTeam.name) !== normalizedPlayerName(teamName)) {
     const response = await fetch(`https://api.pandascore.co/lol/teams?search[name]=${encodeURIComponent(localTeam.name)}&per_page=20`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 3600 } });
     if (response.ok) {
       const candidates = await response.json() as { id: number; name: string }[];
-      const exact = candidates.find((team) => normalizedName(team.name) === normalizedName(localTeam.name));
+      const exact = candidates.find((team) => normalizedPlayerName(team.name) === normalizedPlayerName(localTeam.name));
       if (exact && String(exact.id) !== id) redirect(`/teams/${exact.id}`);
     }
   }
@@ -61,7 +55,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
     for (const role of ["top", "jungle", "mid", "adc", "support"] as const) {
       if (verifiedRoles.has(role)) continue;
       const candidates = pandaPlayers.filter((player) => !isSub(player) && canonicalRole(playerRole(player)) === role);
-      if (candidates.length === 1 && !players.some((player) => normalizedName(player.nickname ?? player.name) === normalizedName(candidates[0].nickname ?? candidates[0].name))) players.push(candidates[0]);
+      if (candidates.length === 1 && !players.some((player) => normalizedPlayerName(player.nickname ?? player.name) === normalizedPlayerName(candidates[0].nickname ?? candidates[0].name))) players.push(candidates[0]);
     }
   }
   players.sort((a, b) => Number(isSub(a)) - Number(isSub(b)) || (roleRank(a) < 0 ? 99 : roleRank(a)) - (roleRank(b) < 0 ? 99 : roleRank(b)));

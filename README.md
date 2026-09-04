@@ -18,6 +18,10 @@ The app polls PandaScore through Next.js's server cache once a minute. It reques
 
 Passwordless login is scaffolded with Supabase. To enable it, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, then configure the production site and `/login` redirect URLs in Supabase Auth.
 
+Accounts are intentionally disabled in the public beta. Do not set `NEXT_PUBLIC_ENABLE_ACCOUNTS=true` until cookie-based SSR sessions, Row Level Security, account deletion, and data export are implemented. Team follows currently stay in the browser and team calendar feeds contain public schedule data.
+
+Every pull request and push to `main` runs lint, unit tests, and a production build in GitHub Actions. The live-data badge shows the latest successful feed refresh; if PandaScore is unavailable, the site labels the fallback as degraded demo data.
+
 See [TODO.md](./TODO.md) for the prioritized product, reliability, account, alert, and revenue work.
 
 ## Importance rating

@@ -4,6 +4,7 @@ let client: SupabaseClient | null | undefined;
 
 export function getAuthClient() {
   if (client !== undefined) return client;
+  if (process.env.NEXT_PUBLIC_ENABLE_ACCOUNTS !== "true") return (client = null);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   client = url && key ? createClient(url, key, { auth: { persistSession: true, detectSessionInUrl: true, flowType: "implicit" } }) : null;

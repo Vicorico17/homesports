@@ -2,10 +2,13 @@
 
 ## Immediate — test and trust
 
-- [ ] Verify the deployed KT Rolster Challengers page shows Ghost as Bot/ADC and Pollu as Support after commit `7b55c6d` reaches Vercel.
-- [ ] Add saved roster-parser fixtures for KT Rolster, KT Rolster Challengers, Gen.G, and one LEC team so Leaguepedia markup changes cannot silently break roles.
+- [ ] Verify the deployed KT Rolster Challengers page shows Ghost as Bot/ADC and Pollu as Support after the next deployment reaches Vercel.
+- [x] Add saved roster-parser fixtures for KT Rolster, KT Rolster Challengers, Gen.G, and one LEC team so Leaguepedia markup changes cannot silently break roles.
 - [ ] Visually verify current LCK and LEC season pages, stage pages, standings, and brackets on desktop and mobile.
-- [ ] Add source-health monitoring for PandaScore and Leaguepedia, including stale-data timestamps and alerts when a roster or competition becomes incomplete.
+- [x] Show PandaScore source health, degraded fallback state, and the latest refresh timestamp to users.
+- [ ] Add external source-health alerts when PandaScore or Leaguepedia becomes stale or a roster/competition becomes incomplete.
+- [x] Add strict linting and CI gates for lint, tests, and production builds.
+- [x] Add canonical/social metadata, icons, robots.txt, sitemap.xml, support link, 404, and error recovery pages.
 
 ## Supabase and accounts
 
@@ -51,3 +54,5 @@
 - [x] Local followed-team filtering is available.
 - [x] Product analytics instrumentation and a privacy page are present.
 - [x] Passwordless login UI and Supabase client scaffolding are present.
+- [x] Accounts are feature-disabled until server sessions and account-data controls are safe to launch.
+- [x] Public calendar behavior and privacy copy accurately describe the current product.
