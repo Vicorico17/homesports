@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getMatches } from "@/lib/matches";
+import { getMatches, normalizeMatch, type PandaMatch } from "@/lib/matches";
 import { getLeaguepediaCompetition } from "@/lib/leaguepedia";
 import { isVerifiedPlayoffMatch, normalizedLabel, validDate } from "@/lib/data-quality";
 
@@ -17,12 +17,14 @@ function roundLabel(phase?: string, round?: string) {
 
 export default async function SeriesCompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { matches } = await getMatches();
-  const seriesMatches = matches.filter((match) => String(match.serieId) === id);
-  const source = seriesMatches[0];
+  const { matches: feedMatches } = await getMatches();
   const token = process.env.PANDASCORE_API_KEY;
   const response = token ? await fetch(`https://api.pandascore.co/series/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }) : null;
   const series = response?.ok ? await response.json() as { full_name?: string; name?: string; year?: number; league?: { name?: string; image_url?: string | null } } : null;
+  const seriesMatchesResponse = token ? await fetch(`https://api.pandascore.co/series/${id}/matches?per_page=100&sort=-begin_at`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } }) : null;
+  const seriesMatchesPayload = seriesMatchesResponse?.ok ? await seriesMatchesResponse.json() as PandaMatch[] : [];
+  const seriesMatches = seriesMatchesPayload.length ? seriesMatchesPayload.map((match) => normalizeMatch(match, match.status === "running" ? "running" : match.status === "finished" ? "finished" : "upcoming")) : feedMatches.filter((match) => String(match.serieId) === id);
+  const source = seriesMatches[0];
   const tournamentsResponse = token ? await fetch(`https://api.pandascore.co/series/${id}/tournaments?per_page=100`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }) : null;
   const tournaments = tournamentsResponse?.ok ? await tournamentsResponse.json() as { id: number; name?: string; has_bracket?: boolean }[] : [];
   const playoffTournament = tournaments.find((tournament) => tournament.has_bracket && /playoff/i.test(tournament.name ?? ""));

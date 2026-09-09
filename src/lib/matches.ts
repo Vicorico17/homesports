@@ -33,7 +33,7 @@ export type MatchFeed = {
   updatedAt: string;
 };
 
-type PandaMatch = {
+export type PandaMatch = {
   id: number; status: string; begin_at?: string | null; name: string; number_of_games: number;
   league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; image_url?: string | null; has_bracket?: boolean }; serie?: { id?: number; full_name?: string; name?: string };
   opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[];
@@ -63,7 +63,7 @@ export function rateMatch(match: PandaMatch) {
   return { stars, reason };
 }
 
-function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
+export function normalizeMatch(match: PandaMatch, requestedStatus: MatchStatus): Match {
   const scoresByTeam = new Map((match.results ?? []).map((result) => [result.team_id, result.score]));
   const rawOpponents = match.opponents ?? [];
   const teamNames = new Map(rawOpponents.map(({ opponent }) => [opponent?.id, opponent?.name]));
@@ -169,7 +169,7 @@ export async function getMatches(fresh = false): Promise<MatchFeed> {
     const sort = path === "past" ? "-begin_at" : "begin_at";
     const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, fresh ? { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" } : { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 30 } });
     if (!response.ok) throw new Error(`PandaScore returned ${response.status}`);
-    return ((await response.json()) as PandaMatch[]).map((match) => normalize(match, status));
+    return ((await response.json()) as PandaMatch[]).map((match) => normalizeMatch(match, status));
   };
   try {
     const groups = await Promise.all([
