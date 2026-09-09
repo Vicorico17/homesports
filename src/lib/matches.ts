@@ -79,7 +79,7 @@ function normalize(match: PandaMatch, requestedStatus: MatchStatus): Match {
     tournamentId: match.tournament?.id ?? match.id,
     tournamentImageUrl: match.tournament?.image_url,
     hasBracket: match.tournament?.has_bracket ?? false,
-    streams: (match.streams_list ?? []).flatMap((stream) => stream.raw_url ? [{ url: stream.raw_url, language: stream.language ?? "stream", official: stream.official ?? false }] : []),
+    streams: (match.streams_list ?? []).flatMap((stream) => stream.raw_url ? [{ url: stream.raw_url, language: stream.language ?? "stream", official: stream.official ?? false }] : []).sort((a, b) => Number(b.official) - Number(a.official)),
     rescheduled: match.rescheduled ?? false,
     mapWinners: (match.games ?? []).sort((a, b) => a.position - b.position).flatMap((game) => {
       const name = game.winner?.id ? teamNames.get(game.winner.id) : undefined;
