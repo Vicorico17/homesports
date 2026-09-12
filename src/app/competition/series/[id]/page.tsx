@@ -1,9 +1,10 @@
+import { PlayoffBracket } from "@/components/playoff-bracket";
+import { type BracketMatch } from "@/lib/bracket";
 import Link from "next/link";
 import { getMatches, normalizeMatch, type PandaMatch } from "@/lib/matches";
 import { getLeaguepediaCompetition } from "@/lib/leaguepedia";
 import { isVerifiedPlayoffMatch, normalizedLabel, validDate } from "@/lib/data-quality";
 
-type PandaBracketMatch = { id: number; name?: string; status?: string; scheduled_at?: string | null; begin_at?: string | null; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { score?: number }[]; previous_matches?: { type?: string; match_id?: number }[] };
 
 export const revalidate = 60;
 
@@ -11,9 +12,6 @@ function dateLabel(value: string) {
   return validDate(value) ? new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Date TBD";
 }
 
-function roundLabel(phase?: string, round?: string) {
-  return (round || phase || "Playoffs").replace(/\s+match\s+\d+$/i, "").replace(/\s+\d+$/, "");
-}
 
 export default async function SeriesCompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,7 +27,7 @@ export default async function SeriesCompetitionPage({ params }: { params: Promis
   const tournaments = tournamentsResponse?.ok ? await tournamentsResponse.json() as { id: number; name?: string; has_bracket?: boolean }[] : [];
   const playoffTournament = tournaments.find((tournament) => tournament.has_bracket && /playoff/i.test(tournament.name ?? ""));
   const bracketResponse = token && playoffTournament ? await fetch(`https://api.pandascore.co/tournaments/${playoffTournament.id}/brackets`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } }) : null;
-  const pandaPlayoffMatches = bracketResponse?.ok ? await bracketResponse.json() as PandaBracketMatch[] : [];
+  const pandaPlayoffMatches = bracketResponse?.ok ? await bracketResponse.json() as BracketMatch[] : [];
   const title = series?.full_name ?? source?.serie ?? series?.name ?? "Competition season";
   const league = series?.league?.name ?? source?.league ?? "COMPETITION";
   const logo = series?.league?.image_url ?? source?.leagueImageUrl;
@@ -40,12 +38,8 @@ export default async function SeriesCompetitionPage({ params }: { params: Promis
   const derivedStandings = [...derivedStandingMap.values()].sort((a, b) => b.WinSeries - a.WinSeries || b.Points - a.Points).map((row, index) => ({ ...row, Place: index + 1 }));
   const standings = (leaguepedia?.standings?.length ? leaguepedia.standings : derivedStandings).map((row, index) => ({ ...row, rank: Number(row.Place) || index + 1, team: knownTeams.get(normalizedLabel(row.Team)) }));
   const playoffMatches = (leaguepedia?.matches ?? []).filter(isVerifiedPlayoffMatch);
-  const fallbackPlayoffMatches = pandaPlayoffMatches.map((match) => ({ MatchId: String(match.id), DateTime_UTC: match.scheduled_at ?? match.begin_at ?? undefined, Team1: match.opponents?.[0]?.opponent?.name ?? "TBD", Team2: match.opponents?.[1]?.opponent?.name ?? "TBD", Team1Score: match.results?.[0]?.score, Team2Score: match.results?.[1]?.score, Team1Final: undefined, Team2Final: undefined, Winner: match.status === "finished" ? "finished" : undefined, Phase: match.name?.split(":")[0] ?? "Playoffs", Round: match.name?.split(":")[0] ?? "Playoffs" }));
-  const renderedPlayoffMatches = playoffMatches.length ? playoffMatches : fallbackPlayoffMatches;
-  const rounds = [...new Map(renderedPlayoffMatches.map((match) => {
-    const label = roundLabel(match.Phase, match.Round);
-    return [label, renderedPlayoffMatches.filter((candidate) => roundLabel(candidate.Phase, candidate.Round) === label)] as const;
-  })).entries()];
+  const wikiMatches: BracketMatch[] = playoffMatches.map((match, index) => ({ id: index + 1, name: [match.Phase, match.Round].filter(Boolean).join(" ") || "Playoffs", status: match.Winner ? "finished" : "not_started", scheduled_at: match.DateTime_UTC, opponents: [{ opponent: { name: match.Team1 } }, { opponent: { name: match.Team2 } }], results: match.Winner ? [{ score: Number(match.Team1Final ?? match.Team1Score) }, { score: Number(match.Team2Final ?? match.Team2Score) }] : [] }));
+  const bracketMatches = pandaPlayoffMatches.length ? pandaPlayoffMatches : wikiMatches;
   const recent = [...seriesMatches.filter((match) => match.status === "running"), ...seriesMatches.filter((match) => match.status === "finished")].slice(0, 20);
 
   return <main className="competition-page">
@@ -57,6 +51,6 @@ export default async function SeriesCompetitionPage({ params }: { params: Promis
 
     <section className="competition-section"><h2>Recent results</h2>{recent.length ? <div className="history-list">{recent.map((match) => { const high = Math.max(...match.opponents.map((team) => team.score ?? -1)); return <div className="history-row" key={match.id}><span className="history-date"><b>{dateLabel(match.beginAt)}</b><Link className="competition-label" href={`/competition/${match.tournamentId}`}>{match.tournamentImageUrl ? <img src={match.tournamentImageUrl} alt="" /> : null}{match.tournament || "Stage"}</Link></span><span className="history-teams">{match.opponents.map((team) => <Link className={team.score === high ? "winner" : ""} href={`/teams/${team.id}`} key={team.id ?? team.name}>{team.imageUrl ? <img src={team.imageUrl} alt="" /> : <i>{team.name.slice(0, 1)}</i>}{team.name}</Link>)}</span><b>{match.opponents.map((team, index) => <span className={team.score === high ? "winner" : ""} key={team.id ?? index}>{team.score ?? "—"}</span>)}</b></div>; })}</div> : <p className="empty">No completed matches are available for this season yet.</p>}</section>
 
-    <section className="competition-section"><h2>Playoff bracket</h2>{rounds.length ? <div className="bracket-board">{rounds.map(([round, roundMatches]) => <div className="bracket-round" key={round}><h3>{round}</h3><div className="bracket-round-matches">{roundMatches.map((match, index) => <div className="bracket-match" key={match.MatchId ?? index}>{[match.Team1, match.Team2].map((team, teamIndex) => <div className="bracket-team" key={teamIndex}><i>{team?.slice(0, 1) || "?"}</i><span>{team || "TBD"}</span><b>{match.Winner ? Number(teamIndex ? match.Team2Final ?? match.Team2Score : match.Team1Final ?? match.Team1Score) || 0 : "—"}</b></div>)}</div>)}</div></div>)}</div> : <p className="empty">Playoff bracket data is temporarily unavailable. The live match board remains current.</p>}</section>
+    <section className="competition-section"><h2>Playoff bracket</h2><PlayoffBracket matches={bracketMatches} /></section>
   </main>;
 }

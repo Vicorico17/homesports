@@ -35,6 +35,6 @@ export function competitionMatchScore(query: string, candidate: string) {
 
 export function isVerifiedPlayoffMatch(match: { Phase?: string; Round?: string; Team1?: string; Team2?: string }) {
   const label = normalizedLabel(`${match.Phase ?? ""} ${match.Round ?? ""}`);
-  const playoff = /(^| )(playoff|knockout|quarterfinal|semifinal|grand final|upper|lower|elimination|round of [0-9]+)( |$)/.test(label);
+  const playoff = /(^| )(playoffs?|knockout|quarter[ -]?finals?|semi[ -]?finals?|grand finals?|upper|lower|elimination|round of [0-9]+)( |$)/.test(label);
   return playoff && Boolean(match.Team1?.trim() || match.Team2?.trim());
 }

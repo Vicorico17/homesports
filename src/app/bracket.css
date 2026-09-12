@@ -1,25 +1,29 @@
 .bracket-page { max-width:1400px; margin:auto; padding:32px; }
-.bracket-page > a { color:var(--dim); text-decoration:none; font-size:13px; }
-.bracket-page > a:hover { color:var(--lime); }
+.bracket-page > a, .bracket-link { color:var(--dim); text-decoration:none; font-size:13px; }
+.bracket-page > a:hover, .bracket-link:hover { color:var(--lime); }
 .bracket-page .eyebrow { margin-top:55px; }
-.bracket-page h1 { margin-bottom:42px; }
-.bracket-board { display:flex; gap:28px; overflow-x:auto; padding:10px 20px 40px 0; }
-.bracket-column, .bracket-round { min-width:290px; flex:0 0 290px; }
-.bracket-column h2, .bracket-round h3 { color:var(--dim); font-size:12px; letter-spacing:1px; text-transform:uppercase; margin:0 0 14px; }
-.bracket-matches, .bracket-round-matches { display:grid; align-items: center; gap:0; min-height:520px; }
-.bracket-round-matches { min-height:520px; }
-.bracket-match { position:relative; background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:10px 12px; }
-.bracket-match::after { content:""; position:absolute; top:50%; right:-29px; width:28px; border-top:1px solid #55564e; }
-.bracket-column:last-child .bracket-match::after, .bracket-round:last-child .bracket-match::after { display:none; }
-.bracket-later-round::before, .bracket-round + .bracket-round .bracket-match::before { content:""; position:absolute; top:25%; left:-15px; height:50%; border-left:1px solid #55564e; }
-.bracket-match small { display:block; margin-bottom:6px; }
-.bracket-team { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid #292a27; font-size:13px; }
-.bracket-team:first-of-type { border-top:0; }
-.bracket-team img, .bracket-team i { width:20px; height:20px; object-fit:contain; border-radius:4px; flex:0 0 20px; }
-.bracket-team i { display:grid; place-items:center; background:#bdbdb5; color:#111; font-style:normal; font-size:10px; }
+.bracket-page h1 { margin-bottom:32px; }
+.playoff-bracket { min-width:0; }
+.bracket-hint { color:var(--dim); font-size:12px; margin:0 0 20px; }
+.bracket-lane { margin-bottom:28px; min-width:0; }
+.bracket-lane > h3 { font-size:13px; margin:0 0 12px; }
+.bracket-board { overflow-x:auto; padding:0 0 12px; scrollbar-width:thin; scrollbar-color:var(--dim) var(--surface); }
+.bracket-board:focus-visible { outline:2px solid var(--lime); outline-offset:4px; }
+.bracket-headers { display:flex; gap:32px; }
+.bracket-headers h4 { flex:0 0 256px; box-sizing:border-box; padding:11px 12px; margin:0; background:var(--surface); border-block:1px solid var(--line); color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.7px; }
+.bracket-canvas { position:relative; }
+.bracket-connectors { position:absolute; pointer-events:none; overflow:visible; }
+.bracket-connectors path { fill:none; stroke:#666961; stroke-width:1; }
+.bracket-match { position:absolute; width:256px; height:100px; box-sizing:border-box; background:var(--surface); border:1px solid var(--line); border-radius:5px; overflow:hidden; }
+.bracket-match.is-live { border-color:var(--lime); }
+.bracket-meta { height:25px; padding:0 10px; display:flex; align-items:center; justify-content:space-between; color:var(--dim); font-size:10px; border-bottom:1px solid var(--line); }
+.is-live .bracket-meta { color:var(--lime); }
+.bracket-team { height:36px; display:flex; align-items:center; gap:9px; padding:0 10px; font-size:12px; }
+.bracket-team + .bracket-team { border-top:1px solid var(--line); }
+.bracket-team img, .bracket-team i { width:18px; height:18px; object-fit:contain; flex:0 0 18px; }
+.bracket-team i { display:grid; place-items:center; background:var(--line); color:var(--dim); border-radius:3px; font-style:normal; font-size:10px; }
 .bracket-team span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:auto; }
-.bracket-team b { color:var(--lime); }
-.section-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; }
-.bracket-link { color:var(--dim); font-size:12px; text-decoration:none; }
-.bracket-link:hover { color:var(--lime); }
-.competition-section .bracket-board { overflow-x:auto; }
+.bracket-team b { align-self:stretch; display:grid; place-items:center; min-width:27px; border-left:1px solid var(--line); color:var(--dim); font-variant-numeric:tabular-nums; }
+.bracket-team.is-winner { font-weight:700; }
+.bracket-team.is-winner b, .is-live .bracket-team b { color:var(--lime); }
+@media(max-width:600px) { .bracket-page { padding:24px 16px; } }

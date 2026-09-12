@@ -1,3 +1,5 @@
+import { PlayoffBracket } from "@/components/playoff-bracket";
+import { type BracketMatch } from "@/lib/bracket";
 import Link from "next/link";
 import { getMatches } from "@/lib/matches";
 import { getLeaguepediaCompetition } from "@/lib/leaguepedia";
@@ -6,7 +8,6 @@ import { isVerifiedPlayoffMatch } from "@/lib/data-quality";
 type Standing = { rank?: number; team?: { id?: number; name?: string; image_url?: string | null }; wins?: number; losses?: number; points?: number; score?: number };
 type Tournament = { name?: string; image_url?: string | null; league?: { name?: string } };
 type TournamentMatch = { id: number; status: string; begin_at: string; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { team_id?: number; score?: number }[] };
-type BracketMatch = { id: number; name?: string; status?: string; scheduled_at?: string | null; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { score?: number }[]; previous_matches?: { type?: string; match_id?: number }[] };
 
 export const revalidate = 60;
 
@@ -17,9 +18,6 @@ async function panda<T>(path: string, token: string) {
 
 function resultFor(match: TournamentMatch, teamId?: number) { return match.results?.find((result) => result.team_id === teamId)?.score; }
 function displayDate(value?: string | null) { if (!value) return "Date TBD"; const date = new Date(value); return Number.isFinite(date.getTime()) && date.getUTCFullYear() >= 2000 ? date.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Date TBD"; }
-function roundName(match: BracketMatch) { const label = match.name?.split(":")[0]?.trim() || "Playoffs"; return label.replace(/\s+match\s+\d+$/i, "").replace(/\s+\d+$/, ""); }
-function bracketTeam(match: BracketMatch, index: number) { const name = match.opponents?.[index]?.opponent?.name; if (name) return name; const previous = match.previous_matches?.[index]; return previous?.match_id ? `${previous.type === "loser" ? "Loser" : "Winner"} of #${previous.match_id}` : "TBD"; }
-function roundRank(label: string) { const value = label.toLowerCase(); if (value.includes("quarter")) return 10; if (value.includes("semi")) return 20; if (value.includes("final")) return 30; const number = value.match(/\d+/); return number ? Number(number[0]) : 50; }
 
 export default async function CompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,11 +49,9 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
   const leaguepedia = await getLeaguepediaCompetition([source?.tournament ?? "", source?.serie ?? "", title]);
   const wikiRows: Standing[] = (leaguepedia?.standings ?? []).map((row) => ({ rank: Number(row.Place) || undefined, team: { name: row.Team }, wins: Number(row.WinSeries) || undefined, losses: Number(row.LossSeries) || undefined, points: Number(row.Points) || undefined }));
   const derivedRows = [...new Map(tournamentMatches.flatMap((match) => match.opponents ?? []).map((entry) => [entry.opponent?.id ?? entry.opponent?.name, entry])).values()].map((entry) => { const id = entry.opponent?.id; const games = tournamentMatches.filter((match) => match.status === "finished" && (match.opponents ?? []).some((candidate) => candidate.opponent?.id === id)); const wins = games.filter((match) => { const current = match.results?.find((result) => result.team_id === id)?.score ?? -1; const other = Math.max(...(match.results ?? []).filter((result) => result.team_id !== id).map((result) => result.score ?? -1)); return current > other; }).length; return { team: entry.opponent, wins, losses: Math.max(0, games.length - wins), points: wins }; }).sort((a, b) => (b.wins ?? 0) - (a.wins ?? 0));
-  const wikiBracket: BracketMatch[] = (leaguepedia?.matches ?? []).filter(isVerifiedPlayoffMatch).map((match, index) => ({ id: Number(match.MatchId?.replace(/\D/g, "")) || index + 1, name: match.Round || match.Phase || "Playoffs", status: match.Winner ? "finished" : "not_started", scheduled_at: match.DateTime_UTC ?? null, opponents: [{ opponent: { name: match.Team1 } }, { opponent: { name: match.Team2 } }], results: match.Winner ? [{ score: Number(match.Team1Final ?? match.Team1Score) || 0 }, { score: Number(match.Team2Final ?? match.Team2Score) || 0 }] : [] }));
+  const wikiBracket: BracketMatch[] = (leaguepedia?.matches ?? []).filter(isVerifiedPlayoffMatch).map((match, index) => ({ id: index + 1, name: [match.Phase, match.Round].filter(Boolean).join(" ") || "Playoffs", status: match.Winner ? "finished" : "not_started", scheduled_at: match.DateTime_UTC ?? null, opponents: [{ opponent: { name: match.Team1 } }, { opponent: { name: match.Team2 } }], results: match.Winner ? [{ score: Number(match.Team1Final ?? match.Team1Score) || 0 }, { score: Number(match.Team2Final ?? match.Team2Score) || 0 }] : [] }));
   const bracketSource = bracket.length ? bracket : wikiBracket;
   const rows: Standing[] = wikiRows.length ? wikiRows : standings.length ? standings : derivedRows.map((row, index) => ({ rank: index + 1, team: row.team, wins: row.wins, losses: row.losses, points: row.points }));
-  const rounds = [...new Map(bracketSource.map((match) => [roundName(match), bracketSource.filter((item) => roundName(item) === roundName(match))])).entries()].sort(([a, aMatches], [b, bMatches]) => { const aDate = Math.min(...aMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); const bDate = Math.min(...bMatches.map((match) => match.scheduled_at ? Date.parse(match.scheduled_at) : Number.POSITIVE_INFINITY)); return (Number.isFinite(aDate) || Number.isFinite(bDate)) ? aDate - bDate : roundRank(a) - roundRank(b); });
-  const bracketSlots = Math.max(...rounds.map(([, matches]) => matches.length), 1);
   const finishedMatches = tournamentMatches.filter((match) => match.status === "finished").slice(0, 20);
 
   return <main className="competition-page">
@@ -67,6 +63,6 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
 
     <section className="competition-section"><h2>Recent results</h2>{finishedMatches.length ? <div className="history-list">{finishedMatches.map((match) => { const opponents = match.opponents ?? []; const scores = opponents.map((entry) => resultFor(match, entry.opponent?.id)); const high = Math.max(...scores.map((score) => score ?? -1)); return <div className="history-row" key={match.id}><span className="history-date"><b>{displayDate(match.begin_at)}</b><small className="competition-label">{logo ? <img src={logo} alt="" /> : null}{title}</small></span><span className="history-teams">{opponents.map((entry, index) => <a className={scores[index] === high ? "winner" : ""} href={`/teams/${entry.opponent?.id}`} key={entry.opponent?.id}>{entry.opponent?.image_url ? <img src={entry.opponent.image_url} alt="" /> : <i>{(entry.opponent?.name ?? "T").slice(0, 1)}</i>}{entry.opponent?.name ?? "TBD"}</a>)}</span><b>{scores.map((score, index) => <span className={scores[index] === high ? "winner" : ""} key={index}>{score ?? "—"}</span>)}</b></div>; })}</div> : <p className="empty">No completed matches are available for this competition yet.</p>}</section>
 
-    <section className="competition-section"><div className="section-heading"><h2>Bracket</h2>{bracket.length ? <Link className="bracket-link" href={`/bracket/${id}`}>Open full bracket ↗</Link> : null}</div>{rounds.length ? <div className="bracket-board">{rounds.map(([round, matches], roundIndex) => <div className="bracket-round" key={round}><h3>{round}</h3><div className="bracket-round-matches" style={{ gridTemplateRows: `repeat(${bracketSlots}, minmax(82px, auto))` }}>{matches.map((match, matchIndex) => { const scores = match.results?.map((result) => result.score ?? "—") ?? []; const span = Math.max(1, Math.floor(bracketSlots / matches.length)); return <div className="bracket-match" style={{ gridRow: `${matchIndex * span + 1} / span ${span}` }} key={match.id}>{[0, 1].map((index) => <div className="bracket-team" key={index}>{match.opponents?.[index]?.opponent?.image_url ? <img src={match.opponents[index].opponent.image_url} alt="" /> : <i>{bracketTeam(match, index).slice(0, 1)}</i>}<span>{bracketTeam(match, index)}</span><b>{scores[index] ?? "—"}</b></div>)}</div>; })}</div></div>)}</div> : <p className="empty">No bracket is available for this competition yet.</p>}</section>
+    <section className="competition-section"><div className="section-heading"><h2>Bracket</h2>{bracket.length ? <Link className="bracket-link" href={`/bracket/${id}`}>Open full bracket ↗</Link> : null}</div><PlayoffBracket matches={bracketSource} /></section>
   </main>;
 }
