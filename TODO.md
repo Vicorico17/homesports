@@ -18,6 +18,39 @@ Full dated plan: [Worlds launch plan](docs/worlds-2026-launch-plan.md) · [HTML 
 - [ ] Assign matchday coverage and backup; recheck official schedules and monitor corrections through November 14.
 - [ ] Review activation and channel performance weekly; publish post-Worlds retrospective November 15–20.
 
+## Go-to-market execution
+
+### Positioning and launch assets
+
+- [ ] Use the promise: “Your Worlds matchday, in one place.”
+- [ ] Keep the core site free and open to everyone; do not present HomeSports as an official Riot or LoL Esports account.
+- [ ] Prepare a 20-second product demo, one schedule carousel, one format explainer, one founder story, and one launch post.
+- [ ] Use only verified fixtures, times, teams, and official watch destinations; label limitations and source freshness.
+
+### Social accounts
+
+- [ ] Create founder-owned TikTok, Instagram, and Reddit accounts with one consistent handle, business email, recovery method, and 2FA.
+- [ ] Complete bios, logos, links, disclosures, and pinned launch content.
+- [ ] Publish four short videos per week, two Instagram carousels per week, and useful matchday Stories during Worlds.
+- [ ] Reuse one verified matchday asset across TikTok, Instagram, Reddit, and approved Discord channels without copy-pasting spam.
+- [ ] Track each asset with `worlds_2026_launch`, source, medium, and content identifiers.
+
+### Community distribution
+
+- [ ] Review current rules for r/leagueoflegends, team subreddits, PedroPeepos, r/LoLeventVoDs, and relevant Discord servers before every post.
+- [ ] Ask moderators for permission where required; never post first and ask later.
+- [ ] Participate helpfully in communities before promotion; do not manufacture karma, buy votes, or use unsolicited DMs.
+- [ ] Recruit 10–15 volunteer testers through approved channels and record task completion/failures.
+- [ ] Identify up to ten small LoL/esports creators with public contact routes and relevant audiences.
+- [ ] Run one creator test at a time with a fixed deliverable, unique attribution link, disclosure, and spending cap.
+
+### Launch measurement
+
+- [ ] Define activation as a session with a follow, calendar action, or stream open.
+- [ ] Set the working target of 20% activation after 100 attributable sessions; treat it as a diagnostic target, not a forecast.
+- [ ] Review channel quality weekly: activated sessions, returning users, useful feedback, cost per activated session, and critical data errors.
+- [ ] Pause any channel or creator test that produces views without useful sessions or creates community complaints.
+
 ## Immediate — test and trust
 
 - [ ] Verify the deployed KT Rolster Challengers page shows Ghost as Bot/ADC and Pollu as Support after the next deployment reaches Vercel.
@@ -49,11 +82,36 @@ Full dated plan: [Worlds launch plan](docs/worlds-2026-launch-plan.md) · [HTML 
 
 ## Revenue
 
-- [ ] Enable and review Vercel Analytics; measure stream opens, follows, calendars, alerts, and weekly returning users.
+The first revenue generator is an approved, clearly disclosed affiliate placement. Crypto is the preferred payout currency; visitors do not need a wallet. Gambling ads are a later, market-eligibility workstream and must never be enabled globally by default.
+
+### Revenue gate: prove the audience first
+
+- [ ] Establish the operating business country, target advertising countries, adult eligibility policy, and responsible-gambling/disclosure requirements.
+- [ ] Record baseline last-30-day sessions, returning users, countries, stream clicks, team follows, calendar actions, and acquisition sources.
+- [ ] Launch Worlds and collect at least one useful audience/activation signal before applying to betting affiliates.
+- [ ] Create a one-page media kit with verified traffic, audience description, placements, screenshots, contact details, and current limitations.
+
+### Revenue generator: one approved affiliate pilot
+
+- [ ] Obtain written permission from the selected operator for this publisher, traffic markets, placements, and esports context.
+- [ ] Request current terms: CPA/revenue share, NGR deductions, negative carryover, qualifying customer, attribution window, payout threshold, crypto asset/network, fees, KYC, and prohibited traffic.
+- [ ] Qualify Cloudbet and Stake for eligible adult markets; qualify Razer or another gaming-hardware program as a non-gambling fallback.
+- [ ] Confirm Riot and PandaScore/data-provider permissions before using odds, betting language, or gambling-related calls to action.
+- [ ] Build a partner registry: partner ID, category, destination, country allowlist, approval status, disclosure text, expiry, and global kill switch.
+- [ ] Serve gambling offers only when eligibility is known; suppress them when country or age eligibility is unknown. Never place them on youth/academy contexts.
+- [ ] Add an allowlisted redirect with `rel="sponsored noopener"`, partner sub-ID, and no wallet/email data in tracking parameters.
+- [ ] Add aggregate impression, click, source, placement, and partner tracking; reconcile conversions against the partner report/postback.
+- [ ] Add an affiliate disclosure page and update privacy/cookie language before the first live link.
+- [ ] Run one placement for 14 days with a fixed cap; compare eligible sessions, activated sessions, clicks, approved conversions, commission paid, complaints, and retention.
+- [ ] Do not expand until the first commission is actually paid and the placement has a useful signal.
+
+### Commercial products after the affiliate pilot
+
+- [ ] Test a hardware/gaming affiliate module for the broad audience, with crypto payout only if the program supports it.
+- [ ] Validate a Founding Supporter offer for personalization, alerts, convenience, and supporter benefits; keep scores, schedules, streams, standings, and rosters free.
 - [ ] Confirm Riot product registration/monetization approval before charging users.
-- [ ] Validate a Founding Supporter offer before building the full premium tier.
 - [ ] Add Stripe Checkout only after the paid proposition and Riot approval are confirmed.
-- [ ] Keep schedules, scores, streams, basic standings, and rosters free; charge for personalization, alerts, convenience, and supporter benefits.
+- [ ] Defer crypto payments, wallets, tokens, prediction prizes, and on-site betting until separately scoped and legally reviewed.
 
 ## Growth and later work
 
