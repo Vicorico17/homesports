@@ -1,5 +1,23 @@
 # HomeSports roadmap
 
+## Worlds 2026 launch — October 8 target
+
+Full dated plan: [Worlds launch plan](docs/worlds-2026-launch-plan.md) · [HTML reading copy](outputs/worlds-2026-launch-plan.html). Confirmed marketing budget: $300–$1,000; proposed base $700. Worlds begins October 15; feature freeze October 4. These are planned tasks, not completed features.
+
+- [ ] Reserve/create founder-owned TikTok, Instagram and Reddit accounts; confirm handles, recovery and profile links by September 16.
+- [ ] Build `/worlds` with verified 2026 stage IDs, local times, team follows and official watch links.
+- [ ] Support Swiss records/draws separately from knockout brackets; never guess future matchups.
+- [ ] Build and test spoiler controls before marketing a spoiler-free experience.
+- [ ] Verify calendar behavior, mobile flows, stale-source fallback and production data during current playoffs.
+- [ ] Add Worlds-specific metadata, self-canonicals, sitemap and acquisition/core-action measurement.
+- [ ] Recruit 10–15 volunteer beta testers through approved channels for the September 27 preview.
+- [ ] Prepare four weekly TikTok/Reels videos, two weekly carousels and launch-day drafts.
+- [ ] Review Reddit/Discord rules; obtain required permissions for each concrete promotional post.
+- [ ] Qualify ten small creator/community partners from current public evidence; no bulk unsolicited outreach.
+- [ ] Complete October 4 readiness review, launch October 8 and rehearse October 12–14.
+- [ ] Assign matchday coverage and backup; recheck official schedules and monitor corrections through November 14.
+- [ ] Review activation and channel performance weekly; publish post-Worlds retrospective November 15–20.
+
 ## Immediate — test and trust
 
 - [ ] Verify the deployed KT Rolster Challengers page shows Ghost as Bot/ADC and Pollu as Support after the next deployment reaches Vercel.
