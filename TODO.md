@@ -1,5 +1,13 @@
 # HomeSports roadmap
 
+## Preselect Twitch Extension
+
+- [x] Preserve the standalone Preselect repository and production checklist.
+- [x] Import the complete committed Preselect source into `projects/preselect-twitch-extension`.
+- [x] Add the `/preselect-twitch-extension` product and information page.
+- [x] Link Preselect from the HomeSports matchboard and sitemap.
+- [ ] Complete the production-readiness checklist in [`projects/preselect-twitch-extension/TODO.md`](projects/preselect-twitch-extension/TODO.md).
+
 ## Worlds 2026 launch — October 8 target
 
 Full dated plan: [Worlds launch plan](docs/worlds-2026-launch-plan.md) · [HTML reading copy](outputs/worlds-2026-launch-plan.html). Confirmed marketing budget: $300–$1,000; proposed base $700. Worlds begins October 15; feature freeze October 4. These are planned tasks, not completed features.

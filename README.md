@@ -24,6 +24,10 @@ Every pull request and push to `main` runs lint, unit tests, and a production bu
 
 See [TODO.md](./TODO.md) for the prioritized product, reliability, account, alert, and revenue work.
 
+## Preselect Twitch Extension
+
+HomeSports includes the complete Preselect Twitch Extension source in [`projects/preselect-twitch-extension`](./projects/preselect-twitch-extension) and a product page at `/preselect-twitch-extension`. Preselect lets viewers predict professional League of Legends champion lock-ins during live co-streams and compete on game and series leaderboards. Its production-readiness work is tracked in the nested [`TODO.md`](./projects/preselect-twitch-extension/TODO.md).
+
 ## Importance rating
 
 The rules live in `src/lib/matches.ts` and are intentionally transparent:

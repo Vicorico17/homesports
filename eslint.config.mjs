@@ -6,5 +6,5 @@ export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
   { rules: { "@next/next/no-img-element": "off", "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^roundIndex$" }] } },
-  globalIgnores([".next/**", "node_modules/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", "node_modules/**", "projects/preselect-twitch-extension/**", "next-env.d.ts"]),
 ]);

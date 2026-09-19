@@ -9,6 +9,7 @@ import "./live-streams.css";
 import "./brand-logo.css";
 import "./competition.css";
 import "./legal.css";
+import "./preselect-twitch-extension.css";
 import "./login/login.css";
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
