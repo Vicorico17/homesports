@@ -12,6 +12,9 @@
 .bracket-headers { display:flex; gap:32px; }
 .bracket-headers h4 { flex:0 0 256px; box-sizing:border-box; padding:11px 12px; margin:0; background:var(--surface); border-block:1px solid var(--line); color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.7px; }
 .bracket-canvas { position:relative; }
+.bracket-section-label { position:absolute; margin:0; padding:8px 0; color:var(--dim); font-size:11px; text-transform:uppercase; }
+.bracket-meta > span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px; }
+.bracket-meta > span:last-child { flex-shrink:0; }
 .bracket-connectors { position:absolute; pointer-events:none; overflow:visible; }
 .bracket-connectors path { fill:none; stroke:#666961; stroke-width:1; }
 .bracket-match { position:absolute; width:256px; height:100px; box-sizing:border-box; background:var(--surface); border:1px solid var(--line); border-radius:5px; overflow:hidden; }

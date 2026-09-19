@@ -20,8 +20,24 @@ test("orders dependency rounds and connects actual feeders despite shuffled inpu
   assert.equal(lane.positions.get(3)?.y, (lane.positions.get(1)!.y + lane.positions.get(2)!.y) / 2);
 });
 
-test("separates lower rounds and never invents connections from card order", () => {
+test("unifies lower rounds and never invents connections from card order", () => {
   const lanes = layoutBracket([{ id: 1, name: "Upper Round 1" }, { id: 2, name: "Lower Round 1" }, { id: 3, name: "Grand Final" }]);
-  assert.deepEqual(lanes.map(lane => lane.name), ["Upper bracket", "Lower bracket", "Final"]);
+  assert.equal(lanes.length, 1);
+  assert.equal(lanes[0].positions.size, 3);
+  assert.ok(lanes[0].positions.get(2)!.y > lanes[0].positions.get(1)!.y);
+  assert.ok(lanes[0].positions.get(3)!.x > lanes[0].positions.get(1)!.x);
   assert.equal(lanes.flatMap(lane => lane.edges).length, 0);
+});
+
+test("connects loser drops and both finalists on the same board", () => {
+  const [board] = layoutBracket([
+    { id: 4, name: "Grand Final", previous_matches: [{ match_id: 2 }, { match_id: 3 }] },
+    { id: 3, name: "Lower Final", previous_matches: [{ match_id: 2, type: "loser" }, { match_id: 1, type: "loser" }] },
+    { id: 2, name: "Upper Final", previous_matches: [{ match_id: 1 }] },
+    { id: 1, name: "Upper Round 1" },
+  ]);
+  assert.equal(board.edges.length, 5);
+  assert.equal(board.edges.filter(edge => edge.loser).length, 2);
+  assert.ok(board.edges.every(edge => edge.from.x < edge.to.x));
+  assert.deepEqual(layoutBracket([]), []);
 });

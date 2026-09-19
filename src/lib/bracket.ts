@@ -19,6 +19,8 @@ function rank(label: string) {
   return Number(label.match(/\d+/)?.[0] ?? 0);
 }
 export function layoutBracket(matches: BracketMatch[]) {
+  if (!matches.length) return [];
+  matches = [...new Map(matches.map(match => [match.id, match])).values()];
   const byId = new Map(matches.map(match => [match.id, match]));
   const depth = (match: BracketMatch, seen = new Set<number>()): number => {
     if (seen.has(match.id)) return 0;
@@ -28,7 +30,7 @@ export function layoutBracket(matches: BracketMatch[]) {
   };
   const lanes = ["Upper bracket", "Lower bracket", "Final"];
   const laneFor = (match: BracketMatch) => /grand final/i.test(roundLabel(match)) ? "Final" : /lower|loser|elimination/i.test(roundLabel(match)) ? "Lower bracket" : "Upper bracket";
-  return lanes.flatMap(lane => {
+  const layouts = lanes.flatMap(lane => {
     const selected = matches.filter(match => laneFor(match) === lane);
     if (!selected.length) return [];
     const groups = new Map<string, BracketMatch[]>();
@@ -57,4 +59,43 @@ export function layoutBracket(matches: BracketMatch[]) {
     }));
     return [{ name: lane === "Upper bracket" && !matches.some(match => laneFor(match) === "Lower bracket") ? "Playoffs" : lane, rounds, positions, edges, height, width: rounds.length * 288 - 32 }];
   });
+  // One shared coordinate system preserves upper-to-lower and final feeders.
+  const columns = new Map<number, number>();
+  const minimumColumns = new Map<number, number>();
+  layouts.forEach(lane => lane.rounds.forEach((round, column) => round.forEach(match => minimumColumns.set(match.id, column))));
+  const columnFor = (match: BracketMatch, seen = new Set<number>()): number => {
+    if (columns.has(match.id)) return columns.get(match.id)!;
+    if (seen.has(match.id)) return 0;
+    const next = new Set(seen).add(match.id);
+    const parents = (match.previous_matches ?? []).flatMap(ref => byId.has(ref.match_id!) ? [byId.get(ref.match_id!)!] : []);
+    const column = Math.max(minimumColumns.get(match.id) ?? 0, ...parents.map(parent => columnFor(parent, next) + 1));
+    columns.set(match.id, column);
+    return column;
+  };
+  matches.forEach(match => columnFor(match));
+  const finalists = matches.filter(match => laneFor(match) === "Final");
+  const lastMainColumn = Math.max(-1, ...matches.filter(match => laneFor(match) !== "Final").map(match => columns.get(match.id)!));
+  finalists.forEach(match => columns.set(match.id, Math.max(columns.get(match.id)!, lastMainColumn + 1 + (minimumColumns.get(match.id) ?? 0))));
+  const positions = new Map<number, { x: number; y: number }>();
+  const sections: { name: string; y: number }[] = [];
+  let height = 0;
+  layouts.filter(lane => lane.name !== "Final").forEach(lane => {
+    sections.push({ name: lane.name, y: height });
+    lane.positions.forEach((position, id) => positions.set(id, { x: columns.get(id)! * 288, y: position.y + height + 32 }));
+    height += lane.height + 64;
+  });
+  let finalY = Math.max(80, height / 2);
+  finalists.forEach(match => {
+    positions.set(match.id, { x: columns.get(match.id)! * 288, y: finalY });
+    finalY += 128;
+  });
+  height = Math.max(height, finalists.length ? finalY - 64 : 0);
+  const rounds: BracketMatch[][] = Array.from({ length: Math.max(...columns.values()) + 1 }, () => []);
+  matches.forEach(match => rounds[columns.get(match.id)!].push(match));
+  rounds.forEach(round => round.sort((a, b) => positions.get(a.id)!.y - positions.get(b.id)!.y || a.id - b.id));
+  const edges = matches.flatMap(match => (match.previous_matches ?? []).flatMap(ref => {
+    const from = positions.get(ref.match_id!), to = positions.get(match.id);
+    return from && to && from.x < to.x ? [{ from, to, loser: ref.type === "loser", key: `${ref.match_id}-${match.id}` }] : [];
+  }));
+  return [{ name: "Complete playoff bracket", rounds, positions, edges, sections, height, width: rounds.length * 288 - 32 }];
 }
