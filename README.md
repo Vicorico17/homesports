@@ -16,7 +16,7 @@ Pre-match odds are disabled by default while product-policy approval is reviewed
 
 The browser refreshes once a minute. The shared match API and PandaScore requests cache for 60 seconds, so active viewers share the same upstream feed rather than each issuing five uncached requests per refresh. Monitor provider usage and rate limits in production.
 
-The `/worlds` hub shows only Worlds 2026 matches published in the live feed. It separates Swiss records from knockout brackets, uses device-local times after hydration, and hides results by default. Team calendar subscriptions use the public `/api/calendar/team/<id>` feed; supported calendar apps can refresh it when fixtures change. Follows and the spoiler preference remain in the current browser.
+The `/worlds` hub shows only Worlds 2026 matches published in the live feed. It separates Swiss records from knockout brackets, uses device-local times after hydration, and hides results by default. Team calendar subscriptions use the public `/api/calendar/team/<id>` feed; supported calendar apps can refresh it when fixtures change and display a one-hour match alert. Follows and the spoiler preference remain in the current browser.
 
 Passwordless login is scaffolded with Supabase. To enable it, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, then configure the production site and `/login` redirect URLs in Supabase Auth.
 

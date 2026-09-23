@@ -10,5 +10,6 @@ test("builds a valid team calendar and omits invalid dates", () => {
   assert.match(calendar, /BEGIN:VCALENDAR/);
   assert.match(calendar, /SUMMARY:T1 vs Gen\.G/);
   assert.match(calendar, /DTSTART:20260901T120000Z/);
+  assert.match(calendar, /BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:Match starts in one hour\r\nTRIGGER:-PT1H/);
   assert.doesNotMatch(calendar, /Placeholder/);
 });

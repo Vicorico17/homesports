@@ -25,6 +25,11 @@ export function buildTeamCalendar(teamName: string, matches: CalendarMatch[], or
       `SUMMARY:${escapeIcs(opponents)}`,
       `DESCRIPTION:${escapeIcs(`${competition} — schedule automatically provided by HomeSports.`)}`,
       `URL:${origin}`,
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:Match starts in one hour",
+      "TRIGGER:-PT1H",
+      "END:VALARM",
       "END:VEVENT",
     ].join("\r\n");
   });
