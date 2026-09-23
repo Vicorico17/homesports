@@ -1,6 +1,7 @@
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { type BracketMatch } from "@/lib/bracket";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getMatches, normalizeMatch, type PandaMatch } from "@/lib/matches";
 import { getLeaguepediaCompetition } from "@/lib/leaguepedia";
 import { isVerifiedPlayoffMatch, normalizedLabel, validDate } from "@/lib/data-quality";
@@ -9,6 +10,16 @@ import { isVerifiedPlayoffMatch, normalizedLabel, validDate } from "@/lib/data-q
 import { deriveStandings, numericStat } from "@/lib/standings";
 
 export const revalidate = 60;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  if (!/^\d+$/.test(id)) return { title: "Competition season", robots: { index: false } };
+  const token = process.env.PANDASCORE_API_KEY;
+  const response = token ? await fetch(`https://api.pandascore.co/series/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }).catch(() => null) : null;
+  const serie = response?.ok ? await response.json() as { full_name?: string; name?: string } : null;
+  const name = serie?.full_name ?? serie?.name;
+  return { title: name ?? "Competition season", description: name ? `${name} schedule, standings, results, and playoffs on HomeSports.` : "League of Legends season schedule and standings on HomeSports.", alternates: { canonical: `/competition/series/${id}` } };
+}
 
 function dateLabel(value: string) {
   return validDate(value) ? new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Date TBD";

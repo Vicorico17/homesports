@@ -1,0 +1,38 @@
+.worlds-page { max-width:1100px; margin:auto; padding:26px 32px 80px; }
+.worlds-topbar { display:flex; align-items:center; gap:22px; padding-bottom:20px; border-bottom:1px solid var(--line); }
+.worlds-topbar .brand { margin-right:auto; }
+.worlds-topbar > a:not(.brand) { color:var(--dim); text-decoration:none; font-size:13px; }
+.worlds-topbar > a:hover { color:var(--lime); }
+.worlds-hero { display:block; padding:64px 0 34px; border-bottom:1px solid var(--line); }
+.worlds-hero h1 { margin:16px 0 24px; }
+.worlds-hero > p { color:#b5b5aa; max-width:590px; line-height:1.6; }
+.worlds-controls { display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:25px; }
+.worlds-controls button { border:1px solid var(--lime); border-radius:4px; color:var(--lime); padding:10px 14px; }
+.worlds-controls button:hover { background:var(--lime); color:#101110; }
+.worlds-next { margin:28px 0; padding:22px; border:1px solid #667a48; background:#1b2118; display:flex; flex-direction:column; gap:8px; }
+.worlds-next strong { font-size:24px; }
+.worlds-next > span:not(.eyebrow) { color:var(--dim); font-size:13px; }
+.worlds-next a, .worlds-match-actions a { color:var(--lime); text-decoration:none; font-size:13px; }
+.worlds-empty { padding:28px; background:var(--surface); color:var(--dim); line-height:1.6; }
+.worlds-section { margin-top:42px; }
+.worlds-section > p { color:var(--dim); font-size:13px; line-height:1.5; }
+.worlds-stage-guide { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:16px; }
+.worlds-stage-guide article { padding:18px; background:var(--surface); border:1px solid var(--line); }
+.worlds-stage-guide b { color:var(--lime); font-size:12px; }
+.worlds-stage-guide p { color:var(--dim); font-size:12px; line-height:1.5; }
+.worlds-records { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
+.worlds-records > div { display:flex; justify-content:space-between; gap:12px; padding:12px 15px; background:var(--surface); border:1px solid var(--line); }
+.worlds-records a, .worlds-match-teams a { color:var(--ink); text-decoration:none; }
+.worlds-records a:hover, .worlds-match-teams a:hover { color:var(--lime); }
+.worlds-match-list { display:grid; gap:10px; margin-top:16px; }
+.worlds-match-list article { display:grid; grid-template-columns:minmax(185px,1fr) minmax(250px,2fr) auto; gap:16px; align-items:center; background:var(--surface); border:1px solid var(--line); padding:18px; }
+.worlds-match-list article > div:first-child { display:flex; flex-direction:column; align-items:flex-start; gap:7px; color:var(--dim); font-size:12px; }
+.worlds-match-list article > div:first-child a { color:var(--dim); }
+.worlds-status { color:var(--lime); font-size:10px; font-weight:bold; letter-spacing:1px; }
+.worlds-match-teams { display:grid; gap:9px; }
+.worlds-match-teams > div { display:flex; align-items:center; gap:12px; min-height:30px; }
+.worlds-match-teams > div > span { flex:1; }
+.worlds-match-teams b { min-width:18px; text-align:center; }
+.worlds-match-teams .follow-team-button { padding:5px 8px; font-size:11px; margin:0; }
+.worlds-match-actions { display:flex; flex-direction:column; align-items:flex-end; gap:9px; }
+@media(max-width:700px) { .worlds-page { padding:18px; } .worlds-hero { padding-top:44px; } .worlds-stage-guide, .worlds-records { grid-template-columns:1fr; } .worlds-match-list article { grid-template-columns:1fr; } .worlds-match-actions { align-items:flex-start; } }

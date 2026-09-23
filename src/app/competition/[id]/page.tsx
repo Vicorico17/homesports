@@ -1,6 +1,7 @@
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { type BracketMatch } from "@/lib/bracket";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getMatches } from "@/lib/matches";
 import { getLeaguepediaCompetition } from "@/lib/leaguepedia";
 import { isVerifiedPlayoffMatch } from "@/lib/data-quality";
@@ -12,6 +13,15 @@ type Tournament = { name?: string; image_url?: string | null; league?: { name?: 
 type TournamentMatch = { id: number; status: string; begin_at: string; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { team_id?: number; score?: number }[] };
 
 export const revalidate = 60;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  if (!/^\d+$/.test(id)) return { title: "Competition", robots: { index: false } };
+  const token = process.env.PANDASCORE_API_KEY;
+  const response = token ? await fetch(`https://api.pandascore.co/tournaments/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }).catch(() => null) : null;
+  const tournament = response?.ok ? await response.json() as { name?: string } : null;
+  return { title: tournament?.name ?? "Competition", description: tournament?.name ? `${tournament.name} standings, results, and playoff bracket on HomeSports.` : "League of Legends tournament standings and bracket on HomeSports.", alternates: { canonical: `/competition/${id}` } };
+}
 
 async function panda<T>(path: string, token: string) {
   const response = await fetch(`https://api.pandascore.co/${path}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });

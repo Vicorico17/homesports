@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getMatches } from "@/lib/matches";
 import { canonicalRole } from "@/lib/data-quality";
 import { AuthCalendarControl, FollowTeamButton } from "@/components/follow-team-button";
@@ -34,6 +35,15 @@ async function getVerifiedRoster(teamName: string, pandaPlayers: Player[]) {
   } catch { return getRenderedRoster(teamName, pandaPlayers).catch(() => null); }
 }
 export const revalidate = 300;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  if (!/^\d+$/.test(id)) return { title: "Team", robots: { index: false } };
+  const token = process.env.PANDASCORE_API_KEY;
+  const response = token ? await fetch(`https://api.pandascore.co/teams/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }).catch(() => null) : null;
+  const team = response?.ok ? await response.json() as { name?: string } : null;
+  return { title: team?.name ?? "Team", description: team?.name ? `${team.name} roster, upcoming matches, results, and calendar on HomeSports.` : "League of Legends team matches and roster on HomeSports.", alternates: { canonical: `/teams/${id}` } };
+}
 
 export default async function TeamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!/^\d+$/.test(id)) notFound(); const { matches } = await getMatches(); const localMatches = matches.filter((match) => match.opponents.some((team) => String(team.id) === id)); const localTeam = localMatches.flatMap((match) => match.opponents).find((opponent) => String(opponent.id) === id);

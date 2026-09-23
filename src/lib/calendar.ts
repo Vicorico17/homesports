@@ -28,5 +28,5 @@ export function buildTeamCalendar(teamName: string, matches: CalendarMatch[], or
       "END:VEVENT",
     ].join("\r\n");
   });
-  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//HomeSports//Team Schedule//EN", "CALSCALE:GREGORIAN", `X-WR-CALNAME:${escapeIcs(`${teamName} — HomeSports`)}`, ...events, "END:VCALENDAR", ""].join("\r\n");
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//HomeSports//Team Schedule//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "REFRESH-INTERVAL;VALUE=DURATION:PT1H", "X-PUBLISHED-TTL:PT1H", `X-WR-CALNAME:${escapeIcs(`${teamName} — HomeSports`)}`, ...events, "END:VCALENDAR", ""].join("\r\n");
 }

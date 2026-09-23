@@ -14,7 +14,9 @@ Set `PANDASCORE_API_KEY` in `.env.local` to use the live PandaScore feed. Withou
 
 Pre-match odds are disabled by default while product-policy approval is reviewed. To enable them in an approved environment, set `ENABLE_ODDS=true` and `ODDS_API_KEY`; `ODDS_BOOKMAKERS` and `ODDS_MAX_EVENTS` remain optional. Affiliate links are not implemented.
 
-The app polls PandaScore through Next.js's server cache once a minute. It requests the running, upcoming and finished endpoints, which is roughly 180 API calls/hour—well inside the free plan's 1,000-request hourly cap.
+The browser refreshes once a minute. The shared match API and PandaScore requests cache for 60 seconds, so active viewers share the same upstream feed rather than each issuing five uncached requests per refresh. Monitor provider usage and rate limits in production.
+
+The `/worlds` hub shows only Worlds 2026 matches published in the live feed. It separates Swiss records from knockout brackets, uses device-local times after hydration, and hides results by default. Team calendar subscriptions use the public `/api/calendar/team/<id>` feed; supported calendar apps can refresh it when fixtures change. Follows and the spoiler preference remain in the current browser.
 
 Passwordless login is scaffolded with Supabase. To enable it, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, then configure the production site and `/login` redirect URLs in Supabase Auth.
 

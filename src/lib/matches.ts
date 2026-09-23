@@ -162,14 +162,15 @@ const demo: Match[] = [
   { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, mapWinners: ["Bilibili Gaming", "Bilibili Gaming"], serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ id: 105, name: "Bilibili Gaming", score: 2 }, { id: 106, name: "Top Esports", score: 0 }] }
 ];
 
-export async function getMatches(fresh = false): Promise<MatchFeed> {
+export async function getMatches(): Promise<MatchFeed> {
   const token = process.env.PANDASCORE_API_KEY;
   if (!token) return { matches: demo, demo: true, source: "Demo", sourceStatus: "not-configured", updatedAt: new Date().toISOString() };
   const request = async (path: string, status: MatchStatus, page = 1) => {
     const sort = path === "past" ? "-begin_at" : "begin_at";
-    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, fresh ? { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" } : { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 30 } });
+    const response = await fetch(`https://api.pandascore.co/lol/matches/${path}?sort=${sort}&per_page=100&page=${page}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
     if (!response.ok) throw new Error(`PandaScore returned ${response.status}`);
-    return ((await response.json()) as PandaMatch[]).map((match) => normalizeMatch(match, status));
+    const sourceDate = response.headers.get("date");
+    return { matches: ((await response.json()) as PandaMatch[]).map((match) => normalizeMatch(match, status)), sourceDate: sourceDate && validDate(sourceDate) ? sourceDate : null };
   };
   try {
     const groups = await Promise.all([
@@ -180,7 +181,7 @@ export async function getMatches(fresh = false): Promise<MatchFeed> {
       request("past", "finished", 2)
     ]);
     const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
-    const sortedMatches = groups.flat().sort((a, b) => {
+    const sortedMatches = groups.flatMap(group => group.matches).sort((a, b) => {
         const statusDifference = statusRank[a.status] - statusRank[b.status];
         if (statusDifference) return statusDifference;
         const aTime = new Date(a.beginAt).getTime();
@@ -188,7 +189,8 @@ export async function getMatches(fresh = false): Promise<MatchFeed> {
         if (a.status === "finished") return (Number.isFinite(bTime) ? bTime : -Infinity) - (Number.isFinite(aTime) ? aTime : -Infinity);
         return (Number.isFinite(aTime) ? aTime : Infinity) - (Number.isFinite(bTime) ? bTime : Infinity);
       });
-    return { matches: await addPreMatchOdds(sortedMatches), demo: false, source: "PandaScore", sourceStatus: "healthy", updatedAt: new Date().toISOString() };
+    const oldestSourceDate = groups.map(group => group.sourceDate && Date.parse(group.sourceDate)).filter((value): value is number => typeof value === "number" && Number.isFinite(value)).sort((a, b) => a - b)[0];
+    return { matches: await addPreMatchOdds(sortedMatches), demo: false, source: "PandaScore", sourceStatus: "healthy", updatedAt: new Date(oldestSourceDate ?? Date.now()).toISOString() };
   } catch (error) {
     console.error(error);
     return { matches: demo, demo: true, source: "Demo", sourceStatus: "unavailable", updatedAt: new Date().toISOString() };

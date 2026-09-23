@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { track } from "@vercel/analytics";
 
 export const FOLLOWED_TEAMS_KEY = "homesports:followed-teams";
@@ -17,7 +17,14 @@ export function readFollowedTeams() {
 }
 
 export function FollowTeamButton({ teamId, teamName }: { teamId: string; teamName: string }) {
-  const [followed, setFollowed] = useState(() => readFollowedTeams().includes(teamId));
+  const [followed, setFollowed] = useState(false);
+  useEffect(() => {
+    const sync = () => setFollowed(readFollowedTeams().includes(teamId));
+    sync();
+    window.addEventListener(FOLLOWED_TEAMS_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => { window.removeEventListener(FOLLOWED_TEAMS_EVENT, sync); window.removeEventListener("storage", sync); };
+  }, [teamId]);
 
   function toggleFollow() {
     const current = new Set(readFollowedTeams());
@@ -32,7 +39,11 @@ export function FollowTeamButton({ teamId, teamName }: { teamId: string; teamNam
 }
 
 export function TeamCalendarLink({ teamId }: { teamId: string }) {
-  return <a className="team-calendar-link" href={`/api/calendar/team/${teamId}`} onClick={() => track("Team Calendar Added", { teamId })}>Add calendar</a>;
+  function subscribe() {
+    track("Team Calendar Subscribed", { teamId });
+    window.location.href = `webcal://${window.location.host}/api/calendar/team/${teamId}`;
+  }
+  return <><button className="team-calendar-link" type="button" onClick={subscribe}>Subscribe to calendar</button><a className="team-calendar-link" href={`/api/calendar/team/${teamId}`} onClick={() => track("Team Calendar Downloaded", { teamId })}>Download .ics</a></>;
 }
 
 export function AuthCalendarControl({ teamId }: { teamId: string }) {
