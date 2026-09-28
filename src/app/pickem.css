@@ -9,6 +9,7 @@
 .odds-row > span { display:flex; align-items:center; justify-content:space-between; min-width:0; gap:10px; }
 .odds-row small { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--dim); font-size:10px; }
 .odds-row b { color:var(--lime); font-size:14px; font-weight:bold; }
+.odds-row::before { content:"MARKET AVERAGE · DECIMAL ODDS"; grid-column:1 / -1; color:var(--dim); font-size:9px; letter-spacing:1px; }
 
 @media (max-width:700px) {
   .pick-row { flex-wrap:wrap; }

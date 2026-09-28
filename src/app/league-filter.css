@@ -15,6 +15,11 @@
 .match-search input { width:200px; max-width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:3px; background:var(--surface); color:var(--ink); font-size:13px; }
 .match-search input:focus-visible { outline:2px solid var(--lime); }
 .site-links { display:flex; flex-wrap:wrap; gap:14px; }
+.game-switch { display:flex; flex-wrap:wrap; gap:4px; padding:3px; border:1px solid var(--line); border-radius:5px; }
+.game-switch a { display:flex; align-items:center; gap:8px; padding:5px 10px; color:var(--dim); font-size:11px; text-decoration:none; border-radius:3px; white-space:nowrap; }
+.game-switch img { display:block; width:30px; height:26px; object-fit:contain; }
+.game-switch a:first-child img { width:38px; }
+.game-switch a.selected { color:#101110; background:var(--lime); font-weight:bold; }
 .shell > header { flex-wrap:wrap; }
 .site-links a { color:var(--dim); text-decoration:none; font-size:12px; }
 .site-links a:hover { color:var(--lime); }
@@ -28,5 +33,6 @@
   .league-filter > span { display:block; padding:0 0 7px; }
   .importance-filter { margin-top:15px; }
   .filter-right { margin-top:14px; }
+  .game-switch { order:2; }
   .site-links { order:3; width:100%; }
 }

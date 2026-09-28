@@ -1,6 +1,6 @@
 # HomeSports
 
-An importance-ranked League of Legends esports matchboard.
+An importance-ranked League of Legends and Valorant esports matchboard. Visitors can switch between the two games; Valorant lives under `/valorant` with its own matches, results, calendar, teams, competitions, and brackets.
 
 ## Run locally
 
@@ -12,9 +12,9 @@ npm run dev
 
 Set `PANDASCORE_API_KEY` in `.env.local` to use the live PandaScore feed. Without it, the UI uses three clearly labelled demo matches.
 
-Pre-match odds are disabled by default while product-policy approval is reviewed. To enable them in an approved environment, set `ENABLE_ODDS=true` and `ODDS_API_KEY`; `ODDS_BOOKMAKERS` and `ODDS_MAX_EVENTS` remain optional. Affiliate links are not implemented.
+Match-winner odds from Odds-API.io are supported on both game boards but disabled by default pending product-policy review. In an approved environment set `ENABLE_ODDS=true` and `ODDS_API_KEY`. Unmatched games show no odds. `ODDS_BOOKMAKERS` and `ODDS_MAX_EVENTS` are optional. Prices are decimal market averages, refreshed through a 60-second cache, not a betting offer or guaranteed live price. There are no wager or affiliate links. Riot's developer policy prohibits betting or gambling functionality and requires review of product changes, so confirm whether displaying odds is permitted before enabling this feature publicly.
 
-The browser refreshes once a minute. The shared match API and PandaScore requests cache for 60 seconds, so active viewers share the same upstream feed rather than each issuing five uncached requests per refresh. Monitor provider usage and rate limits in production.
+The browser refreshes once a minute. The shared match API and PandaScore requests cache for 60 seconds, so active viewers share upstream feeds. LoL and Valorant each request five match pages per refresh cycle when visited; monitor combined provider usage and rate limits in production. Valorant's running match endpoint does not provide live round-by-round telemetry, so the site only displays the match status and series scores published by the provider.
 
 The `/worlds` hub shows only Worlds 2026 matches published in the live feed. It separates Swiss records from knockout brackets, uses device-local times after hydration, and hides results by default. Team calendar subscriptions use the public `/api/calendar/team/<id>` feed; supported calendar apps can refresh it when fixtures change and display a one-hour match alert. Follows and the spoiler preference remain in the current browser.
 

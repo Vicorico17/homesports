@@ -1,4 +1,9 @@
 .competition-page { max-width:960px; margin:auto; padding:34px 32px 80px; }
+.valorant-history { display:grid; gap:8px; }
+.valorant-history-row { display:grid; grid-template-columns:180px 1fr auto; gap:16px; align-items:center; padding:15px; background:var(--surface); border:1px solid var(--line); font-size:13px; }
+.valorant-history-row > span:first-child { display:grid; gap:5px; color:var(--dim); font-size:11px; }
+.valorant-history-row a { color:var(--lime); text-decoration:none; }
+@media(max-width:700px) { .valorant-history-row { grid-template-columns:1fr; gap:8px; } }
 .competition-page > a { color:var(--dim); text-decoration:none; font-size:13px; }
 .competition-page h1 { margin-bottom:18px; }
 .competition-page h1 em { color:var(--lime); font-style:normal; }
