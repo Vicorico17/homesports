@@ -95,3 +95,8 @@
  .arcade-ability > img { width:64px; height:64px; }
  .arcade-ability h3 { font-size:21px; }
 }
+
+.arcade-daily-reset { display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
+.arcade-reset-clock { color:#b4b4a9; font-size:12px; }
+.arcade-reset-clock strong { display:inline-block; min-width:76px; margin-left:6px; padding:7px 10px; border:1px solid #485938; border-radius:5px; color:var(--lime); font-variant-numeric:tabular-nums; }
+.arcade-hero-copy .arcade-daily-rule { font-size:12px; max-width:440px; line-height:1.6; }

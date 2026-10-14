@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { champions, findChampion, portraitPath, dailyChampion, dayKey, memoryDeck, normalizeGuess, readProgress, scramble } from "./challenges.ts";
+import { champions, findChampion, portraitPath, dailyChampion, dailyStorageKey, dayKey, resetCountdown, memoryDeck, normalizeGuess, readProgress, scramble } from "./challenges.ts";
 
 test("daily games use UTC consistently across local timezones", () => {
   assert.equal(dayKey(new Date("2026-10-15T01:00:00+03:00")), "2026-10-14");
@@ -63,4 +63,37 @@ test("all puzzles have real champion portraits and ultimate data", () => {
     assert.ok(champions.includes(dailyChampion("2026-10-14", mode)));
   }
   assert.equal(portraitPath("invalid"), undefined);
+});
+
+
+test("each guessing mode rotates through the full pool without daily repeats", () => {
+  const epoch = Date.UTC(2026, 11, 15);
+  for (const mode of ["clues", "scramble", "ability", "title"] as const) {
+    const cycle = Array.from({ length: champions.length }, (_, index) => dailyChampion(dayKey(new Date(epoch + index * 86_400_000)), mode).name);
+    assert.equal(new Set(cycle).size, champions.length);
+  }
+  for (let index = 0; index < 370; index++) {
+    const day = dayKey(new Date(epoch + index * 86_400_000));
+    const tomorrow = dayKey(new Date(epoch + (index + 1) * 86_400_000));
+    const answers = (["clues", "scramble", "ability", "title"] as const).map(mode => dailyChampion(day, mode).name);
+    assert.equal(new Set(answers).size, 4);
+    const todayPairs = new Set(memoryDeck(day));
+    assert.equal(todayPairs.size, 6);
+    assert.equal(new Set(memoryDeck(tomorrow)).size, 6);
+    assert.ok(memoryDeck(tomorrow).every(name => !todayPairs.has(name)));
+  }
+});
+
+test("midnight countdown and progress keys roll over together across years and leap days", () => {
+  for (const [before, after] of [["2026-12-31", "2027-01-01"], ["2028-02-28", "2028-02-29"], ["2028-02-29", "2028-03-01"]]) {
+    const lastMoment = new Date(`${before}T23:59:59.500Z`);
+    const midnight = new Date(lastMoment.getTime() + 500);
+    assert.equal(resetCountdown(lastMoment), "00:00:01");
+    assert.equal(resetCountdown(midnight), "24:00:00");
+    assert.equal(dayKey(midnight), after);
+    assert.notEqual(dailyStorageKey(dayKey(lastMoment), "clues"), dailyStorageKey(dayKey(midnight), "clues"));
+    assert.notEqual(dailyChampion(before, "clues").name, dailyChampion(after, "clues").name);
+  }
+  assert.equal(resetCountdown(new Date("2026-10-14T12:34:56Z")), "11:25:04");
+  assert.notEqual(dailyStorageKey("2026-10-14", "clues"), dailyStorageKey("2026-10-14", "title"));
 });

@@ -4,22 +4,29 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { track } from "@vercel/analytics";
-import { champions, championRoster, dailyChampion, dayKey, findChampion, memoryDeck, modes, normalizeGuess, portraitPath, readProgress, scramble, type ChallengeMode, type Progress } from "@/lib/challenges";
+import { champions, championRoster, dailyChampion, dailyStorageKey, dayKey, resetCountdown, findChampion, memoryDeck, modes, normalizeGuess, portraitPath, readProgress, scramble, type ChallengeMode, type Progress } from "@/lib/challenges";
 
 export function ChallengeArcade() {
-  const [day, setDay] = useState("");
+  const [now, setNow] = useState<Date | null>(null);
+  const day = now ? dayKey(now) : "";
   const [selection, setMode] = useState<ChallengeMode | null>(null);
   const searchParams = useSearchParams();
   const mode = selection ?? modes.find(item => item.id === searchParams.get("game"))?.id ?? "clues";
   useEffect(() => {
-    const refresh = () => setDay(dayKey());
+    const refresh = () => setNow(new Date());
     refresh();
-    const timer = window.setInterval(refresh, 30_000);
-    return () => window.clearInterval(timer);
+    const timer = window.setInterval(refresh, 1_000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, []);
   return <main className="shell arcade">
     <header><Link className="brand" href="/"><span>HOME</span>SPORTS</Link><nav aria-label="Site"><Link href="/">Matches</Link><Link href="/worlds">Worlds 2026</Link><Link href="/calendar">Calendar</Link><Link href="/play" aria-current="page">Daily games</Link></nav></header>
-    <section className="arcade-hero"><div className="arcade-hero-copy"><p className="eyebrow">THE PRE-MATCH WARMUP</p><h1>Know your<br /><em>champions.</em></h1><p>From Ahri’s charm to Lux’s ultimate. Five daily games to test your champion knowledge before the next series.</p><span className="arcade-date">{day || "Daily challenges"} · Resets at 00:00 UTC</span><p className="arcade-roster-count">{champions.length} champions · Portraits, ultimates & lore titles · Free to play</p></div><div className="arcade-champion-lineup" aria-label="Featured League champions">{["Ahri", "Jinx", "Yasuo", "Lux", "Ekko"].map(name => <figure key={name}><img src={portraitPath(name)} alt="" width={120} height={120} /><figcaption>{name}</figcaption></figure>)}</div></section>
+    <section className="arcade-hero"><div className="arcade-hero-copy"><p className="eyebrow">THE PRE-MATCH WARMUP</p><h1>Know your<br /><em>champions.</em></h1><p>From Ahri’s charm to Lux’s ultimate. Five daily games to test your champion knowledge before the next series.</p><div className="arcade-daily-reset"><span className="arcade-date">{day || "Daily challenges"} · New puzzles at 00:00 UTC</span><span className="arcade-reset-clock" role="timer" aria-live="off">Next reset <strong>{now ? resetCountdown(now) : "--:--:--"}</strong></span></div><p className="arcade-daily-rule">One challenge per game, per day. Everyone gets the same puzzles. Come back tomorrow for a new set.</p><p className="arcade-roster-count">{champions.length} champions · Portraits, ultimates & lore titles · Free to play</p></div><div className="arcade-champion-lineup" aria-label="Featured League champions">{["Ahri", "Jinx", "Yasuo", "Lux", "Ekko"].map(name => <figure key={name}><img src={portraitPath(name)} alt="" width={120} height={120} /><figcaption>{name}</figcaption></figure>)}</div></section>
     <div className="arcade-modes" aria-label="Choose a daily game">{modes.map(item => <button key={item.id} aria-pressed={mode === item.id} onClick={() => setMode(item.id)}><span className="arcade-mode-art" aria-hidden="true"><img src={`/league/champions/${item.champion}.png`} alt="" width={56} height={56} /><b>{item.mark}</b></span><span><strong>{item.name}</strong><span>{item.description}</span></span><span aria-hidden="true">↗</span></button>)}</div>
     {day ? <DailyGame key={`${day}:${mode}`} day={day} mode={mode} /> : <p role="status">Loading today’s games…</p>}
     <section className="arcade-next"><div><p className="eyebrow">FROM CHAMPION KNOWLEDGE TO CHAMPIONSHIP MOMENTS</p><h2>Your next move? Catch a real match.</h2><p>Find a series worth watching, open a team page, and follow their schedule.</p></div><Link href="/calendar" onClick={() => track("Game Calendar Clicked", { mode })}>Find my next match →</Link></section>
@@ -28,7 +35,7 @@ export function ChallengeArcade() {
 }
 
 function DailyGame({ day, mode }: { day: string; mode: ChallengeMode }) {
-  const storageKey = `homesports:daily:v2:${day}:${mode}`;
+  const storageKey = dailyStorageKey(day, mode);
   // This keyed component mounts only after the parent resolves the day on the client.
   const [initial] = useState(() => {
     try { return { progress: readProgress(localStorage.getItem(storageKey), day), message: "" }; }
@@ -54,7 +61,7 @@ function DailyGame({ day, mode }: { day: string; mode: ChallengeMode }) {
   }
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (finished) return;
+    if (finished || day !== dayKey()) return;
     const selected = findChampion(guess);
     if (!selected) { setMessage("Choose a League champion from the suggestions. This does not use a guess."); return; }
     const value = selected.name;
@@ -66,7 +73,7 @@ function DailyGame({ day, mode }: { day: string; mode: ChallengeMode }) {
     if (correct || next.guesses.length === 3) track("Daily Game Completed", { mode, won: correct });
   }
   function flip(index: number) {
-    if (finished || flipped.length === 2 || flipped.includes(index) || progress.matched.includes(deck[index])) return;
+    if (day !== dayKey() || finished || flipped.length === 2 || flipped.includes(index) || progress.matched.includes(deck[index])) return;
     const next = [...flipped, index]; setFlipped(next);
     if (next.length === 2) {
       const match = deck[next[0]] === deck[index];
@@ -82,7 +89,7 @@ function DailyGame({ day, mode }: { day: string; mode: ChallengeMode }) {
     try { await navigator.clipboard.writeText(text); setMessage("Result copied. Send it to your duo!"); }
     catch { setShareText(text); setMessage("Copy your result below to share it."); }
   }
-  return <section className="arcade-panel" aria-labelledby="daily-title"><div className="arcade-panel-heading"><div><p className="eyebrow">TODAY’S CHALLENGE</p><h2 id="daily-title">{modes.find(item => item.id === mode)!.name}</h2></div><span>{mode === "memory" ? `${progress.matched.length}/6 pairs · ${progress.moves} moves` : `${progress.guesses.length}/3 guesses`}</span></div>
+  return <section className="arcade-panel" aria-labelledby="daily-title"><div className="arcade-panel-heading"><div><p className="eyebrow">DAILY CHALLENGE · {day}</p><h2 id="daily-title">{modes.find(item => item.id === mode)!.name}</h2></div><span>{mode === "memory" ? `${progress.matched.length}/6 pairs · ${progress.moves} moves` : `${progress.guesses.length}/3 guesses`}</span></div>
     <>
       {mode === "clues" && <ol className="arcade-clues">{champion.clues.map((clue, index) => <li key={clue}><b>0{index + 1}</b><span>{finished || index <= progress.guesses.length ? clue : "Revealed after your next guess"}</span></li>)}</ol>}
       {mode === "scramble" && <div className="arcade-scramble"><p>UNSCRAMBLE THIS CHAMPION</p><strong aria-label={`Letters: ${scramble(champion.name, day).split("").join(", ")}`}>{scramble(champion.name, day)}</strong><p>{normalizeGuess(champion.name).length} letters · Three attempts</p></div>}

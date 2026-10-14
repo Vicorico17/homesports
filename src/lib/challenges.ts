@@ -22,14 +22,28 @@ export function shuffle<T>(items: readonly T[], seed: number): T[] {
   }
   return result;
 }
-export function dailyChampion(day: string, mode: GuessMode) { return champions[seedFor(`${day}:${mode}`) % champions.length]; }
+const dayMilliseconds = 86_400_000;
+const rotationEpoch = Date.UTC(2026, 0, 1);
+const championRotation = shuffle(champions, seedFor("homesports:champion-rotation:v3"));
+const modeOffsets: Record<GuessMode, number> = { clues: 0, scramble: 11, ability: 23, title: 35 };
+function dayNumber(day: string) { return Math.floor((Date.parse(`${day}T00:00:00Z`) - rotationEpoch) / dayMilliseconds); }
+function rotationIndex(index: number) { return ((index % champions.length) + champions.length) % champions.length; }
+// Each mode visits the entire champion pool before repeating. Offsets keep today's answers distinct.
+export function dailyChampion(day: string, mode: GuessMode) { return championRotation[rotationIndex(dayNumber(day) + modeOffsets[mode])]; }
+export function dailyStorageKey(day: string, mode: ChallengeMode) { return `homesports:daily:v3:${day}:${mode}`; }
+export function resetCountdown(now: Date) {
+  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  const seconds = Math.ceil((midnight - now.getTime()) / 1000);
+  return [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(value => String(value).padStart(2, "0")).join(":");
+}
 export function scramble(name: string, day: string) {
   const letters = normalizeGuess(name).toUpperCase();
   const mixed = shuffle([...letters], seedFor(day)).join("");
   return mixed === letters ? letters.slice(1) + letters[0] : mixed;
 }
 export function memoryDeck(day: string) {
-  const names = shuffle(champions.map(champion => champion.name), seedFor(day)).slice(0, 6);
+  // Advance six places daily, so adjacent days never share a champion pair.
+  const names = Array.from({ length: 6 }, (_, index) => championRotation[rotationIndex(dayNumber(day) * 6 + index)].name);
   return shuffle([...names, ...names], seedFor(`${day}:pairs`));
 }
 export function normalizeGuess(value: string) { return value.trim().toLowerCase().replace(/[^a-z]/g, ""); }
