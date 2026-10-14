@@ -11,5 +11,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...match.opponents.flatMap(team => team.id != null ? [`${prefix}/teams/${team.id}`] : []),
     ];
   }));
-  return [...new Set(["", "/live", "/results", "/calendar", "/worlds", "/valorant", "/valorant/live", "/valorant/results", "/valorant/calendar", "/preselect-twitch-extension", "/privacy", ...dynamic])].map((path) => ({ url: `${base}${path}`, changeFrequency: path === "" || path === "/live" || path === "/valorant" || path === "/valorant/live" ? "hourly" : "daily" }));
+  return [...new Set(["", "/live", "/results", "/calendar", "/worlds", "/play", "/valorant", "/valorant/live", "/valorant/results", "/valorant/calendar", "/preselect-twitch-extension", "/privacy", ...dynamic])].map((path) => ({ url: `${base}${path}`, changeFrequency: path === "" || path === "/live" || path === "/valorant" || path === "/valorant/live" ? "hourly" : "daily" }));
 }

@@ -1,0 +1,114 @@
+{
+  "campaign": "worlds_2026",
+  "status": "drafts_not_scheduled",
+  "posts": [
+    {
+      "id": "launch",
+      "platform": "x",
+      "suggested_date": "2026-10-14",
+      "status": "draft",
+      "text": "Worlds starts tomorrow. I built HomeSports to make the next match and its official stream easier to find.\n\nFree, no signup. Bookmark your Worlds hub:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=launch\n\nWhat would make this more useful for you?",
+      "x_length_with_shortened_url": 216,
+      "published_url": null
+    },
+    {
+      "id": "pinned",
+      "platform": "x",
+      "suggested_date": null,
+      "status": "draft",
+      "text": "Your Worlds matchday, in one place.\n\nFind the next match and its official stream on HomeSports. Free, no signup.\n\nBookmark it for Worlds:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=pinned",
+      "x_length_with_shortened_url": 161,
+      "published_url": null
+    },
+    {
+      "id": "opening_day",
+      "platform": "x",
+      "suggested_date": "2026-10-15",
+      "status": "draft",
+      "text": "Worlds starts today. Get your viewing plan sorted before the first series.\n\nFind the next match and official stream on HomeSports:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=opening_day\n\nWho are you watching this year?",
+      "x_length_with_shortened_url": 187,
+      "published_url": null
+    },
+    {
+      "id": "feedback",
+      "platform": "x",
+      "suggested_date": "2026-10-17",
+      "status": "draft",
+      "text": "What do you check first on a Worlds matchday: the start time, the teams, or the stream?\n\nI\u2019m building HomeSports around that first click. Try it and tell me what\u2019s missing:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=feedback",
+      "x_length_with_shortened_url": 196,
+      "published_url": null
+    },
+    {
+      "id": "games_launch",
+      "platform": "x",
+      "suggested_date": "2026-10-19",
+      "status": "hold_until_play_is_live",
+      "text": "A League warmup between Worlds stages.\n\nGuess a champion from clues, untangle a champion name, or find six matching pairs. Three free daily games on HomeSports.\n\nChallenge your duo:\nhttps://homesports.vercel.app/play?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=games_launch",
+      "x_length_with_shortened_url": 205,
+      "published_url": null
+    },
+    {
+      "id": "duo_challenge",
+      "platform": "x",
+      "suggested_date": "2026-10-21",
+      "status": "hold_until_play_is_live",
+      "text": "Three clues. Three guesses. Can your duo name the champion before you do?\n\nToday\u2019s HomeSports challenge:\nhttps://homesports.vercel.app/play?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=duo_challenge\n\nShare your result, keep the answer secret.",
+      "x_length_with_shortened_url": 172,
+      "published_url": null
+    },
+    {
+      "id": "swiss_open",
+      "platform": "x",
+      "suggested_date": "2026-10-23",
+      "status": "draft",
+      "text": "Worlds Swiss starts today. Time to plan your next watch session.\n\nFind published fixtures and official-stream links on HomeSports:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=swiss_open\n\nWhich team are you following?",
+      "x_length_with_shortened_url": 185,
+      "published_url": null
+    },
+    {
+      "id": "quarterfinals",
+      "platform": "x",
+      "suggested_date": "2026-11-03",
+      "status": "draft",
+      "text": "Worlds quarterfinals start today. Clear a little space in your evening\u2014or morning.\n\nFind the next series and its official stream:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=quarterfinals",
+      "x_length_with_shortened_url": 153,
+      "published_url": null
+    },
+    {
+      "id": "semifinals",
+      "platform": "x",
+      "suggested_date": "2026-11-07",
+      "status": "draft",
+      "text": "Worlds semifinal weekend is here.\n\nFind the next series and official-stream link on HomeSports:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=semifinals\n\nWho are you watching with?",
+      "x_length_with_shortened_url": 147,
+      "published_url": null
+    },
+    {
+      "id": "final_eve",
+      "platform": "x",
+      "suggested_date": "2026-11-13",
+      "status": "draft",
+      "text": "One more day until the Worlds final. Send your duo the plan.\n\nFind the final and official-stream link here:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=final_eve",
+      "x_length_with_shortened_url": 131,
+      "published_url": null
+    },
+    {
+      "id": "final_day",
+      "platform": "x",
+      "suggested_date": "2026-11-14",
+      "status": "draft",
+      "text": "Worlds final day. Snacks ready? Group chat ready?\n\nFind the match and official stream on HomeSports:\nhttps://homesports.vercel.app/worlds?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=final_day\n\nEnjoy the series.",
+      "x_length_with_shortened_url": 143,
+      "published_url": null
+    },
+    {
+      "id": "after_worlds",
+      "platform": "x",
+      "suggested_date": "2026-11-15",
+      "status": "draft",
+      "text": "Thanks to everyone who tried HomeSports during Worlds. I\u2019m keeping it going for the next season.\n\nFind published team schedules here:\nhttps://homesports.vercel.app/calendar?utm_source=x&utm_medium=organic_social&utm_campaign=worlds_2026&utm_content=after_worlds\n\nWhat should I improve before your team plays again?",
+      "x_length_with_shortened_url": 210,
+      "published_url": null
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import "./legal.css";
 import "./preselect-twitch-extension.css";
 import "./login/login.css";
 import "./worlds.css";
+import "./play.css";
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 

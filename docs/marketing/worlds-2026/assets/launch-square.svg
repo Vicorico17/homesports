@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+<title>HomeSports Worlds campaign</title><desc>Your Worlds matchday, in one place. Find your next match and open the official stream.</desc>
+<rect width="1080" height="1080" fill="#101110"/>
+<path d="M740 0 L1080 0 L1080 1080 L360 1080 Z" fill="#1d2518"/>
+<g fill="none" stroke="#3b4b2a" stroke-width="2"><circle cx="1030" cy="520" r="320"/><circle cx="1030" cy="520" r="400"/></g>
+<g font-family="Arial,Helvetica,sans-serif"><text x="80" y="125" font-size="38" font-weight="900" fill="#b8f36a">HOME<tspan fill="#e9e6dc">SPORTS</tspan></text>
+<text x="80" y="260" font-size="22" letter-spacing="5" fill="#b8f36a">WORLDS 2026</text>
+<g x="80" font-size="94" font-weight="900" letter-spacing="-4" fill="#e9e6dc"><text x="80" y="370">Your Worlds</text><text x="80" y="476">matchday,</text><text x="80" y="582" fill="#b8f36a">in one place.</text></g>
+<text x="80" y="680" font-size="30" fill="#c4c4b8">Find your next match.</text><text x="80" y="727" font-size="30" fill="#c4c4b8">Open the official stream.</text>
+<rect x="80" y="792" width="390" height="76" rx="8" fill="#b8f36a"/><text x="112" y="840" font-size="27" font-weight="700" fill="#101110">Plan your matchday →</text>
+<text x="80" y="980" font-size="24" fill="#e9e6dc">Free. No signup.</text><text x="80" y="1020" font-size="18" fill="#a7a79d">Independent fan project. Not affiliated with Riot Games.</text></g></svg>
