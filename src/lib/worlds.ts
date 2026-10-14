@@ -1,3 +1,4 @@
+import type { BracketMatch } from "./bracket.ts";
 import type { Match } from "./matches.ts";
 
 export type WorldsStage = "Play-in" | "Swiss" | "Knockout" | "Other";
@@ -14,7 +15,7 @@ export function isWorlds2026Match(match: Match) {
 export function worldsStage(match: Match): WorldsStage {
   const label = match.tournament.toLowerCase();
   if (/play[ -]?in|qualif/.test(label)) return "Play-in";
-  if (/swiss/.test(label)) return "Swiss";
+  if (/swiss/.test(label) || (isWorlds2026Match(match) && /group[ -]?stage/.test(label))) return "Swiss";
   if (/knockout|quarter|semi|final|playoff|bracket/.test(label)) return "Knockout";
   return "Other";
 }
@@ -33,4 +34,30 @@ export function swissRecords(matches: Match[]) {
     }
   }
   return [...records.values()].sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.name.localeCompare(b.name));
+}
+
+
+export type WorldsData = {
+  matches: Match[];
+  brackets: { tournamentId: number; stage: WorldsStage; matches: BracketMatch[]; available: boolean }[];
+  updatedAt: string;
+  sourceStatus: string;
+  complete: boolean;
+};
+
+export function groupWorldsMatches(matches: Match[]) {
+  const groups = new Map<string, Match[]>();
+  const sorted = [...new Map(matches.map(match => [match.id, match])).values()].sort((a, b) => (Date.parse(a.beginAt) || Infinity) - (Date.parse(b.beginAt) || Infinity) || a.id - b.id);
+  for (const match of sorted) {
+    // Prefer explicit round/group labels; a UTC date is a grouping, not an inferred round.
+    const round = match.name.match(/(?:swiss\s+)?round\s+\d+|group\s+[a-h]\b|quarter[ -]?finals?|semi[ -]?finals?|grand final|upper[^:]*|lower[^:]*/i)?.[0];
+    const key = round || (Number.isFinite(Date.parse(match.beginAt)) ? new Date(match.beginAt).toISOString().slice(0, 10) : "Schedule pending");
+    groups.set(key, [...(groups.get(key) ?? []), match]);
+  }
+  return [...groups].map(([label, matches]) => ({ label, matches }));
+}
+
+export function filterWorldsMatches(matches: Match[], filters: { league: string; minimum: number; query: string }) {
+  const query = filters.query.trim().toLowerCase();
+  return matches.filter(match => isWorlds2026Match(match) && (filters.league === "all" || match.league === filters.league) && match.importance >= filters.minimum && (!query || [match.name, match.league, match.serie, match.tournament, ...match.opponents.map(team => team.name)].some(value => value.toLowerCase().includes(query))));
 }

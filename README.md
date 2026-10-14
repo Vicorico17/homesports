@@ -49,3 +49,11 @@ Next iteration: add a small editable team/rivalry boost table after observing th
 Refresh the data and artwork with `node scripts/update-challenge-data.mjs <version>`. Review generated changes and bump the saved-progress version when the puzzle pool changes. The expanded pool uses `homesports:daily:v3` so older answers are not applied to different puzzles. Data source: https://developer.riotgames.com/docs/lol#data-dragon.
 
 All five puzzles rotate automatically at 00:00 UTC without a scheduled server job. Each guessing mode cycles through all 46 champions before repeating, with distinct answers across modes on a given day. Memory uses six new champions each day and a date-seeded layout. The reset countdown updates every second; returning to a background tab refreshes the day immediately. Saved progress is scoped to the UTC date and game, so yesterday’s completion never locks today’s game.
+
+## Worlds on All Matches
+
+The League All Matches tab separates Worlds 2026 from other competitions. Its tournament section includes Play-In, Swiss match groups and records, and source-backed Play-In/Knockout brackets. Match filters apply to stage lists; brackets deliberately show the complete stage. Scores start hidden. UTC date groups are labelled separately from device-local match times.
+
+`getWorldsData` fetches the published season schedule in pages and the provider’s bracket dependencies, so tournament history is not limited to the general matchboard’s recent-match window. `/api/worlds` caches responses for 60 seconds; the section refreshes every minute and retains available data during failures. Unknown teams and missing brackets are labelled rather than inferred. The provider’s “Group Stage” label is recognized as Swiss specifically for Worlds 2026.
+
+The banner at `public/worlds/worlds-2026.jpg` is Riot’s official Worlds 2026 artwork, including its event logo, from the [Worlds 2026 primer](https://lolesports.com/en-GB/news/worlds-2026-primer). Original image: https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/a57a2226c2721c242aaf53c771ad13d4e505962f-1920x1080.jpg.
