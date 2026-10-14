@@ -1,22 +1,15 @@
-export const champions = [
-  { name: "Ahri", clues: ["My magic can charm an enemy.", "An orb is my signature weapon.", "I am the Nine-Tailed Fox."] },
-  { name: "Ashe", clues: ["I fight with a ranged weapon.", "My arrows carry the cold of the Freljord.", "I am the Frost Archer."] },
-  { name: "Jinx", clues: ["I cause chaos with ranged weapons.", "My arsenal includes Fishbones and Pow-Pow.", "I am the Loose Cannon."] },
-  { name: "Lux", clues: ["My magic can bind enemies.", "I wield the power of light.", "I am the Lady of Luminosity."] },
-  { name: "Yasuo", clues: ["I fight with a blade.", "I can create a wall of wind.", "I am the Unforgiven."] },
-  { name: "Thresh", clues: ["I collect souls.", "My lantern can bring an ally to safety.", "I am the Chain Warden."] },
-  { name: "Teemo", clues: ["I am a yordle.", "I leave poisonous mushrooms behind.", "I am the Swift Scout."] },
-  { name: "Garen", clues: ["I wield a great sword.", "I fight for Demacia.", "I am the Might of Demacia."] },
-  { name: "Nami", clues: ["I can heal an ally and hurt an enemy with one spell.", "I summon a tidal wave.", "I am the Tidecaller."] },
-  { name: "Braum", clues: ["I protect my allies.", "I carry a huge shield and come from the Freljord.", "I am the Heart of the Freljord."] },
-  { name: "Ekko", clues: ["I come from Zaun.", "I can rewind time.", "I am the Boy Who Shattered Time."] },
-  { name: "Leona", clues: ["I fight with a sword and shield.", "My power comes from the sun.", "I am the Radiant Dawn."] },
-];
-export type ChallengeMode = "clues" | "scramble" | "memory";
-export const modes: { id: ChallengeMode; name: string; description: string; mark: string }[] = [
-  { id: "clues", name: "Champion clues", description: "Three clues. Three guesses. Find the champion.", mark: "?" },
-  { id: "scramble", name: "Champion scramble", description: "Untangle the letters. Name the champion in three tries.", mark: "AZ" },
-  { id: "memory", name: "Pair patrol", description: "Flip the cards. Find six champion pairs in as few moves as possible.", mark: "◇" },
+import { championData, championRoster } from "./champion-data.ts";
+
+export const champions = championData;
+export { championRoster };
+export type GuessMode = "clues" | "scramble" | "ability" | "title";
+export type ChallengeMode = GuessMode | "memory";
+export const modes: { id: ChallengeMode; name: string; description: string; mark: string; champion: string }[] = [
+  { id: "clues", name: "Champion clues", description: "Three clues. Three guesses. Find the champion.", mark: "?", champion: "Ahri" },
+  { id: "scramble", name: "Champion scramble", description: "Untangle the letters. Name the champion in three tries.", mark: "AZ", champion: "Jinx" },
+  { id: "memory", name: "Pair patrol", description: "Match champion portraits. Find six pairs in as few moves as possible.", mark: "◇", champion: "Thresh" },
+  { id: "ability", name: "Whose ultimate?", description: "An ultimate icon and its name. Which champion casts it?", mark: "R", champion: "Lux" },
+  { id: "title", name: "Name that legend", description: "The title is your clue. Name the champion behind it.", mark: "I", champion: "Yasuo" },
 ];
 export function dayKey(date = new Date()) { return date.toISOString().slice(0, 10); }
 export function seedFor(value: string) { return [...value].reduce((seed, char) => (Math.imul(seed, 31) + char.charCodeAt(0)) >>> 0, 7); }
@@ -29,9 +22,9 @@ export function shuffle<T>(items: readonly T[], seed: number): T[] {
   }
   return result;
 }
-export function dailyChampion(day: string, mode: "clues" | "scramble") { return champions[seedFor(`${day}:${mode}`) % champions.length]; }
+export function dailyChampion(day: string, mode: GuessMode) { return champions[seedFor(`${day}:${mode}`) % champions.length]; }
 export function scramble(name: string, day: string) {
-  const letters = name.toUpperCase();
+  const letters = normalizeGuess(name).toUpperCase();
   const mixed = shuffle([...letters], seedFor(day)).join("");
   return mixed === letters ? letters.slice(1) + letters[0] : mixed;
 }
@@ -49,3 +42,6 @@ export function readProgress(raw: string | null, day: string): Progress {
     return { guesses: value.guesses, matched: [...new Set<string>(value.matched)], moves: value.moves };
   } catch { return empty; }
 }
+
+export function findChampion(value: string) { return championRoster.find(champion => normalizeGuess(champion.name) === normalizeGuess(value)); }
+export function portraitPath(name: string) { const champion = champions.find(champion => champion.name === name); return champion ? `/league/champions/${champion.id}.png` : undefined; }

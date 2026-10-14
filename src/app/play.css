@@ -50,3 +50,48 @@
 .arcade-teaser p { margin:0; color:#b4b4a9; font-size:13px; line-height:1.5; }
 .arcade-teaser a { color:var(--lime); font-size:14px; font-weight:bold; text-decoration:none; white-space:nowrap; }
 @media(max-width:750px) { .arcade-modes { grid-template-columns:1fr; } .arcade-modes button { padding:16px; } .arcade-modes strong { margin-bottom:5px; } .arcade-panel { padding:20px; } .arcade-next { flex-direction:column; align-items:flex-start; } .arcade-panel-heading { align-items:flex-start; flex-direction:column; } .arcade-memory { gap:7px; } .arcade-memory button { min-height:70px; font-size:13px; padding:5px; } .arcade-form { flex-direction:column; align-items:stretch; } .arcade-teaser { flex-direction:column; align-items:flex-start; } }
+
+/* League champion artwork is stored locally from Riot Data Dragon. */
+.arcade-hero { display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:36px; align-items:center; }
+.arcade-hero-copy > p:not(.eyebrow) { max-width:540px; color:#b4b4a9; line-height:1.65; }
+.arcade-roster-count { font-size:12px; margin-top:20px; }
+.arcade-champion-lineup { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; transform:rotate(-4deg); }
+.arcade-champion-lineup figure { margin:0; padding:7px; border:1px solid #485938; background:linear-gradient(150deg,#303d24,#151913); border-radius:10px; }
+.arcade-champion-lineup figure:nth-child(2n) { transform:translateY(24px); }
+.arcade-champion-lineup img { display:block; width:100%; height:auto; border-radius:5px; }
+.arcade-champion-lineup figcaption { text-align:center; font-size:12px; padding:8px 0 2px; color:#d7dfcd; }
+.arcade-modes { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.arcade-mode-art { position:relative; flex-shrink:0; }
+.arcade-mode-art img { border-radius:7px; border:1px solid #78895e; }
+.arcade-mode-art b { position:absolute; bottom:-2px; right:-4px; padding:3px 5px; background:#b8f36a; color:#101110; border-radius:3px; font-size:11px; }
+.arcade-memory button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:138px; }
+.arcade-memory img { width:72px; height:72px; object-fit:cover; border-radius:5px; }
+.arcade-memory button .arcade-card-name { font-size:13px; color:inherit; }
+.arcade-ability { display:flex; align-items:center; gap:24px; padding:24px; border:1px solid #5a643c; border-radius:8px; background:#20251a; }
+.arcade-ability > img { border:2px solid #b6a370; border-radius:9px; image-rendering:auto; }
+.arcade-ability h3 { font-size:26px; margin:10px 0; }
+.arcade-ability p:not(.eyebrow),.arcade-title-quiz > p:not(.eyebrow) { color:#b4b4a9; line-height:1.6; font-size:14px; }
+.arcade-title-quiz { text-align:center; padding:30px 10px; }
+.arcade-title-quiz blockquote { margin:24px 0; color:#d7c68d; font-size:clamp(26px,4vw,38px); font-family:Georgia,serif; text-transform:capitalize; }
+.arcade-hint { font-size:13px; color:#d7c68d; padding:14px; border-left:2px solid #d7c68d; background:#28281e; }
+.arcade-guessed-champion { display:flex; align-items:center; gap:10px; }
+.arcade-guessed-champion img { border-radius:4px; }
+.arcade-guesses li { align-items:center; gap:12px; }
+.arcade-champion-reveal { display:flex; gap:20px; align-items:center; padding:18px 0; }
+.arcade-champion-reveal img { border-radius:8px; border:2px solid #b8f36a; }
+.arcade-champion-reveal strong { font-size:26px; }
+.arcade-champion-reveal p { margin:6px 0; text-transform:capitalize; }
+@media(max-width:750px) {
+ .arcade-hero { grid-template-columns:1fr; gap:28px; }
+ .arcade-champion-lineup { display:flex; transform:none; gap:8px; }
+ .arcade-champion-lineup figure { flex:1; min-width:0; padding:4px; }
+ .arcade-champion-lineup figure:nth-child(2n) { transform:none; }
+ .arcade-champion-lineup figcaption { font-size:10px; }
+ .arcade-modes { grid-template-columns:1fr; }
+ .arcade-memory { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .arcade-memory button { min-height:110px; }
+ .arcade-memory img { width:60px; height:60px; }
+ .arcade-ability { padding:16px; gap:16px; }
+ .arcade-ability > img { width:64px; height:64px; }
+ .arcade-ability h3 { font-size:21px; }
+}

@@ -41,3 +41,9 @@ The rules live in `src/lib/matches.ts` and are intentionally transparent:
 - 1 star: development and academy leagues
 
 Next iteration: add a small editable team/rivalry boost table after observing the real schedule.
+
+## Daily League games
+
+`/play` includes champion clues, name scrambles, portrait pairs, ultimate identification, and champion-title quizzes. The puzzle pool contains 46 champions; the autocomplete roster contains 173 names from Riot Data Dragon 16.20.1. Artwork is checked into `public/league`, so playing does not require a Riot CDN request. Names, classes, titles, passives, and ultimates come from Data Dragon; region associations are editorial hints. Classes are not claimed to be current lane assignments.
+
+Refresh the data and artwork with `node scripts/update-challenge-data.mjs <version>`. Review generated changes and bump the saved-progress version when the puzzle pool changes. The expanded pool uses `homesports:daily:v2` so older answers are not applied to different puzzles. Data source: https://developer.riotgames.com/docs/lol#data-dragon.
