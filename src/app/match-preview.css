@@ -1,0 +1,56 @@
+.match-preview-card { position:relative; }
+.match-preview-card .match-preview-link { position:static; color:var(--lime); font-size:11px; text-decoration:none; }
+.match-preview-link::after { content:""; position:absolute; inset:0; z-index:1; border-radius:inherit; }
+.match-preview-link:focus-visible { outline:none; }
+.match-preview-link:focus-visible::after { outline:2px solid var(--lime); outline-offset:3px; }
+.match-preview-card:has(.match-preview-link:hover) { border-color:#91a571; }
+.match-preview-card a:not(.match-preview-link),.match-preview-card button { position:relative; z-index:2; }
+.match-preview-card footer { flex-wrap:wrap; }
+.bracket-match.match-preview-card { position:absolute; }
+.bracket-with-preview > .match-preview-link { font-size:0; }
+.match-preview-page { max-width:960px; margin:0 auto; padding:32px 24px 80px; }
+.match-preview-back { color:var(--dim); font-size:13px; text-decoration:none; }
+.match-preview-page > .eyebrow { margin-top:44px; }
+.match-preview-page h1 { font-size:clamp(38px,6vw,64px); letter-spacing:-2px; line-height:1.1; margin-bottom:24px; }
+.match-preview-meta { display:flex; gap:16px; flex-wrap:wrap; color:#aeb5a7; font-size:12px; }
+.match-preview-meta > span:first-child { color:var(--lime); }
+.match-preview-versus { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin:30px 0 16px; }
+.match-preview-versus > div { border:1px solid #3d4933; border-radius:12px; padding:30px; background:linear-gradient(150deg,#252e20,#141713); display:flex; flex-direction:column; align-items:center; text-align:center; gap:20px; }
+.match-preview-versus > div:nth-child(2) { background:linear-gradient(150deg,#232b3d,#14171d); border-color:#425372; }
+.match-preview-versus .worlds-team-identity { flex-direction:column; font-size:23px; font-weight:bold; }
+.match-preview-versus .worlds-team-logo { width:80px; height:80px; flex-basis:80px; font-size:22px; }
+.match-preview-versus .worlds-team-identity a { color:var(--ink); text-decoration:none; }
+.match-preview-chance { color:var(--lime); font-size:64px; letter-spacing:-3px; }
+.match-preview-chance small { color:inherit; font-size:26px; }
+.match-preview-versus > div:nth-child(2) .match-preview-chance { color:#a6beff; }
+.match-preview-score { font-size:14px; color:#d4dbcd; }
+.match-preview-score-toggle { padding:10px 14px; border:1px solid #58664b; border-radius:5px; color:var(--lime); }
+.match-preview-estimate { margin-top:26px; border:1px solid var(--line); border-radius:12px; padding:26px; background:var(--surface); }
+.match-preview-estimate > p,.match-preview-estimate details p { color:#b4b9ad; font-size:14px; line-height:1.65; }
+.match-preview-estimate .match-preview-estimate-label { color:var(--lime); font-size:10px; letter-spacing:1px; margin-top:18px; }
+.match-preview-bar { display:flex; height:14px; overflow:hidden; border-radius:8px; margin:18px 0; gap:3px; }
+.match-preview-bar > span:first-child { background:var(--lime); }
+.match-preview-bar > span:last-child { background:#a6beff; }
+.match-preview-form { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin:24px 0; }
+.match-preview-form > div { min-width:0; }
+.match-preview-form h3 { font-size:15px; margin-bottom:8px; }
+.match-preview-form p { font-size:13px; color:#b7beaf; }
+.match-preview-form > div > div { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }
+.match-preview-form .form-win,.match-preview-form .form-loss { display:grid; place-items:center; height:25px; width:25px; border-radius:3px; font-size:11px; font-weight:bold; }
+.form-win { background:#344b24; color:#cbf6a5; }
+.form-loss { background:#4b2e2a; color:#efb6a7; }
+.match-preview-estimate details { border-top:1px solid var(--line); padding-top:18px; }
+.match-preview-estimate summary { cursor:pointer; color:#c4cfba; font-size:13px; }
+.match-preview-actions { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:24px; }
+.match-preview-actions a { color:var(--lime); font-size:14px; text-decoration:none; }
+.match-preview-page a:focus-visible,.match-preview-page button:focus-visible,.match-preview-page summary:focus-visible { outline:2px solid var(--lime); outline-offset:4px; }
+@media(max-width:600px) {
+ .match-preview-page { padding:24px 16px 60px; }
+ .match-preview-versus { gap:10px; }
+ .match-preview-versus > div { padding:20px 10px; }
+ .match-preview-versus .worlds-team-identity { font-size:16px; }
+ .match-preview-versus .worlds-team-logo { width:60px; height:60px; flex-basis:60px; }
+ .match-preview-chance { font-size:48px; }
+ .match-preview-estimate { padding:20px 16px; }
+ .match-preview-form { grid-template-columns:1fr; gap:12px; }
+}

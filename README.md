@@ -57,3 +57,9 @@ The League All Matches tab separates Worlds 2026 from other competitions. Its to
 `getWorldsData` fetches the published season schedule in pages and the provider’s bracket dependencies, so tournament history is not limited to the general matchboard’s recent-match window. `/api/worlds` caches responses for 60 seconds; the section refreshes every minute and retains available data during failures. Unknown teams and missing brackets are labelled rather than inferred. The provider’s “Group Stage” label is recognized as Swiss specifically for Worlds 2026.
 
 The banner at `public/worlds/worlds-2026.jpg` is Riot’s official Worlds 2026 artwork, including its event logo, from the [Worlds 2026 primer](https://lolesports.com/en-GB/news/worlds-2026-primer). Original image: https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/a57a2226c2721c242aaf53c771ad13d4e505962f-1920x1080.jpg.
+
+## Match previews
+
+Match cards on the boards and Worlds views open `/match/<id>?game=lol` (or `game=valorant`). Team links, follows, and stream buttons keep their separate actions. Published Worlds bracket matches also open previews; synthetic fallback brackets do not receive match links.
+
+Previews include team logos, optional series scores, and transparent recent-form win estimates. The estimate uses up to 10 completed series per team in the preceding 180 days, with at least five valid results required for each team. Scores are matched by team ID; other games, duplicate records, tied/incomplete results, and results after the cutoff are excluded. Smoothed win rates `(wins + 2) / (series + 4)` are compared using relative win/loss odds and normalized to 100%. This is an uncalibrated heuristic, not bookmaker or live odds, and does not model strength of opposition, drafts, or roster changes. In-progress matches retain a pre-series cutoff. Finished/cancelled matches and insufficient-data cases show no forecast. No odds integration is enabled by this feature.

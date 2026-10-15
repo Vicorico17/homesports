@@ -21,14 +21,15 @@ export function worldsStage(match: Match): WorldsStage {
 }
 
 export function swissRecords(matches: Match[]) {
-  const records = new Map<string, { id?: number; name: string; wins: number; losses: number }>();
+  const records = new Map<string, { id?: number; name: string; imageUrl?: string | null; wins: number; losses: number }>();
   for (const match of new Map(matches.map(match => [match.id, match])).values()) {
     if (worldsStage(match) !== "Swiss" || match.status !== "finished" || match.opponents.length !== 2) continue;
     const [a, b] = match.opponents;
     if (a.score == null || b.score == null || a.score === b.score) continue;
     for (const [team, other] of [[a, b], [b, a]]) {
       const key = team.id != null ? String(team.id) : team.name.toLowerCase();
-      const row = records.get(key) ?? { id: team.id, name: team.name, wins: 0, losses: 0 };
+      const row = records.get(key) ?? { id: team.id, name: team.name, imageUrl: team.imageUrl, wins: 0, losses: 0 };
+      if (!row.imageUrl && team.imageUrl) row.imageUrl = team.imageUrl;
       if (team.score! > other.score!) row.wins += 1; else row.losses += 1;
       records.set(key, row);
     }
