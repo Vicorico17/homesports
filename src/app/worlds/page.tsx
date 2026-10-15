@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { getMatches } from "@/lib/matches";
-import { isWorlds2026Match } from "@/lib/worlds";
+import { getWorldsData } from "@/lib/worlds-feed";
 import { WorldsHub } from "@/components/worlds-hub";
 
 export const revalidate = 60;
@@ -12,6 +11,6 @@ export const metadata: Metadata = {
 };
 
 export default async function WorldsPage() {
-  const feed = await getMatches();
-  return <WorldsHub matches={feed.demo ? [] : feed.matches.filter(isWorlds2026Match)} updatedAt={feed.updatedAt} sourceStatus={feed.sourceStatus} />;
+  const feed = await getWorldsData();
+  return <WorldsHub matches={feed.matches} brackets={feed.brackets} updatedAt={feed.updatedAt} sourceStatus={feed.sourceStatus} />;
 }

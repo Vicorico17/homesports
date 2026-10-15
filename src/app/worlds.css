@@ -138,3 +138,6 @@
  .worlds-next-matchup { gap:10px; }
  .worlds-next-matchup .worlds-team-logo { width:32px; height:32px; flex-basis:32px; }
 }
+
+.worlds-inline-brackets.worlds-bracket-only { margin-bottom:0; padding-bottom:0; border-bottom:0; }
+.worlds-hub-playin { margin-top:20px; min-width:0; }
