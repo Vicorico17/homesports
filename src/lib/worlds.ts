@@ -37,6 +37,55 @@ export function swissRecords(matches: Match[]) {
   return [...records.values()].sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.name.localeCompare(b.name));
 }
 
+/** Groups Swiss matches by the teams' records entering that match. */
+export function swissMatchGroups(matches: Match[]) {
+  const unique = [...new Map(matches.map(match => [match.id, match])).values()]
+    .filter(match => worldsStage(match) === "Swiss")
+    .sort((a, b) => (Date.parse(a.beginAt) || Infinity) - (Date.parse(b.beginAt) || Infinity) || a.id - b.id);
+  const records = new Map<string, { wins: number; losses: number }>();
+  const groups = new Map<string, Match[]>();
+  const teamKey = (team: Match["opponents"][number]) => team.id != null ? String(team.id) : team.name.toLowerCase();
+  const recordLabel = (team: Match["opponents"][number]) => {
+    const record = records.get(teamKey(team));
+    return record ? `${record.wins}–${record.losses}` : "0–0";
+  };
+
+  for (const match of unique) {
+    const [a, b] = match.opponents;
+    const aRecord = a ? recordLabel(a) : "TBD";
+    const bRecord = b ? recordLabel(b) : "TBD";
+    const label = aRecord === bRecord ? aRecord : `${aRecord} vs ${bRecord}`;
+    groups.set(label, [...(groups.get(label) ?? []), match]);
+
+    if (match.status !== "finished" || !a || !b || a.score == null || b.score == null || a.score === b.score) continue;
+    for (const [team, other] of [[a, b], [b, a]]) {
+      const key = teamKey(team);
+      const record = records.get(key) ?? { wins: 0, losses: 0 };
+      if (team.score! > other.score!) record.wins += 1;
+      else record.losses += 1;
+      records.set(key, record);
+    }
+  }
+
+  return [...groups].map(([label, matches]) => ({ label, matches })).sort((a, b) => {
+    const score = (label: string) => label.match(/^(\d+)–(\d+)$/);
+    const left = score(a.label);
+    const right = score(b.label);
+    if (!left) return right ? 1 : a.label.localeCompare(b.label);
+    if (!right) return -1;
+    return Number(right[1]) - Number(left[1]) || Number(left[2]) - Number(right[2]);
+  });
+}
+
+export function groupSwissRecords(matches: Match[]) {
+  const groups = new Map<string, ReturnType<typeof swissRecords>>();
+  for (const team of swissRecords(matches)) {
+    const label = `${team.wins}–${team.losses}`;
+    groups.set(label, [...(groups.get(label) ?? []), team]);
+  }
+  return [...groups].map(([label, teams]) => ({ label, teams }));
+}
+
 
 export type WorldsData = {
   matches: Match[];

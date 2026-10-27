@@ -22,6 +22,10 @@
 .worlds-stage-guide p { color:var(--dim); font-size:12px; line-height:1.5; }
 .worlds-records { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
 .worlds-records > div { display:flex; justify-content:space-between; gap:12px; padding:12px 15px; background:var(--surface); border:1px solid var(--line); }
+.worlds-record-group { margin-top:18px; }
+.worlds-record-group h3,.worlds-record-group h4,.worlds-record-match-group > h3 { margin:0 0 8px; color:var(--lime); font-size:14px; }
+.worlds-record-match-group { display:grid; gap:10px; margin-top:20px; }
+.worlds-record-match-group > h3 { margin:0; }
 .worlds-records a, .worlds-match-teams a { color:var(--ink); text-decoration:none; }
 .worlds-records a:hover, .worlds-match-teams a:hover { color:var(--lime); }
 .worlds-match-list { display:grid; gap:10px; margin-top:16px; }
