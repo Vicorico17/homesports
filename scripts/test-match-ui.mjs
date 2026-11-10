@@ -94,6 +94,79 @@ try {
   const worlds = await page('/worlds'); assert.match(worlds, /Worlds 2026/); assert.match(worlds, /Show results/);
   assert.doesNotMatch(worlds, /<b>[12]<\/b>/, 'Spoiler-hidden Worlds cards exposed scores');
   const calendar = await fetch(`${base}/api/calendar/team/10`); assert.equal(calendar.status, 200); assert.match(await calendar.text(), /BEGIN:VCALENDAR/);
+  // Agent discovery is present in server-rendered HTML, with no JavaScript required.
+  for (const route of ['/', '/live', '/results', '/calendar', '/valorant', '/valorant/live', '/valorant/results', '/valorant/calendar', '/privacy', '/agents', '/worlds', '/preselect-twitch-extension', '/bracket/20', '/match/1000?game=lol', '/match/1100?game=valorant']) {
+    const response = await fetch(base + route); assert.equal(response.status, 200, route);
+    const html = await response.text();
+    const canonical = html.match(/<link rel="canonical" href="([^"]+)"/);
+    assert.ok(canonical, `Canonical missing on ${route}`);
+    assert.equal(new URL(canonical[1].replaceAll('&amp;', '&')).pathname + new URL(canonical[1].replaceAll('&amp;', '&')).search, route, `Wrong canonical on ${route}`);
+    if (['/', '/live', '/results', '/calendar', '/privacy'].includes(route)) assert.match(html, /property="og:image" content="https:\/\/[^"]+\/homesports-logo.png"/, `Social image missing: ${route}`);
+    assert.match(html, /rel="alternate" type="text\/plain" href="\/llms.txt"/, `Discovery link absent on ${route}`);
+    assert.match(html, /rel="service-desc" type="application\/json" href="\/api\/agent\/openapi"/, `OpenAPI link absent on ${route}`);
+    const structured = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    assert.ok(structured, `Structured metadata missing on ${route}`);
+    assert.equal(JSON.parse(structured[1])['@type'], 'WebSite');
+    if (route.startsWith('/match/')) assert.doesNotMatch(html, /name="robots" content="noindex/, `Valid match unexpectedly noindex: ${route}`);
+  }
+  const unavailableMatch = await page('/match/999999?game=lol');
+  assert.match(unavailableMatch, /name="robots" content="noindex/, 'Unavailable match must not be indexed');
+  for (const [route, type] of [['/llms.txt', 'text/plain'], ['/llms-full.txt', 'text/plain'], ['/agents/index.md', 'text/markdown'], ['/api/agent/site', 'application/json'], ['/api/agent/openapi', 'application/json']]) {
+    const response = await fetch(base + route); assert.equal(response.status, 200, route);
+    assert.ok(response.headers.get('content-type').startsWith(type), route);
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff', route);
+  }
+  const guide = await (await fetch(base + '/llms-full.txt')).text();
+  assert.equal(guide, await (await fetch(base + '/agents/index.md')).text());
+  const catalog = await (await fetch(base + '/api/agent/site')).json();
+  assert.equal(catalog.pages.length, 13); assert.equal(catalog.routeFamilies.length, 9);
+  assert.equal(catalog.access.readOnly, true); assert.equal(catalog.access.mcpAvailable, false);
+  const sitemap = await (await fetch(base + '/sitemap.xml')).text();
+  for (const suffix of ['/match/1000?game=lol', '/match/1100?game=valorant', '/bracket/20', '/valorant/bracket/120']) assert.ok(sitemap.includes(suffix), `Missing sitemap URL ${suffix}`);
+  assert.ok(!sitemap.includes('/login'));
+  const robots = await (await fetch(base + '/robots.txt')).text();
+  assert.match(robots, /Allow: \/api\/agent\//); assert.match(robots, /Disallow: \/api\//);
+  const spec = await (await fetch(base + '/api/agent/openapi')).json();
+  // Validate the actual JSON against the schema vocabulary used by this contract.
+  function validate(schema, value, at = '$') {
+    if (schema.const !== undefined) assert.equal(value, schema.const, at);
+    if (schema.enum) assert.ok(schema.enum.includes(value), at);
+    const types = Array.isArray(schema.type) ? schema.type : [schema.type];
+    const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value === 'number' && Number.isInteger(value) ? 'integer' : typeof value;
+    assert.ok(types.includes(type) || (type === 'integer' && types.includes('number')), `${at}: ${type} not ${types}`);
+    if (type === 'object') {
+      for (const key of schema.required ?? []) assert.ok(key in value, `${at}.${key} required`);
+      for (const [key, field] of Object.entries(value)) {
+        if (schema.additionalProperties === false) assert.ok(key in schema.properties, `${at}.${key} unexpected`);
+        if (schema.properties[key]) validate(schema.properties[key], field, `${at}.${key}`);
+      }
+    }
+    if (type === 'array') value.forEach((item, index) => validate(schema.items, item, `${at}[${index}]`));
+    if (schema.format === 'uri' && value !== null) assert.ok(new URL(value));
+    if (schema.format === 'date-time' && value !== null) assert.ok(Number.isFinite(Date.parse(value)), at);
+  }
+  validate(spec.paths['/api/agent/site'].get.responses['200'].content['application/json'].schema, catalog);
+  for (const game of ['lol', 'valorant']) {
+    const feed = await (await fetch(`${base}/api/agent/matches?game=${game}&limit=50`)).json();
+    validate(spec.paths['/api/agent/matches'].get.responses['200'].content['application/json'].schema, feed);
+    assert.equal(feed.schemaVersion, '1.1'); assert.equal(feed.resultsIncluded, false);
+    assert.equal(feed.source.demo, false); assert.ok(feed.source.freshUntil);
+    for (const match of feed.matches) {
+      assert.ok(match.opponents.every(team => !('score' in team)));
+      if (match.status !== 'running') assert.deepEqual(match.streams, []);
+      if ([1010, 1110].includes(match.id)) {
+        assert.equal(match.tournament.id, null); assert.equal(match.tournament.url, null); assert.equal(match.tournament.bracketUrl, null);
+        assert.ok(!sitemap.includes(`/competition/${match.id}</loc>`), 'Fallback match id leaked as tournament id');
+        assert.ok(!sitemap.includes(`/bracket/${match.id}</loc>`), 'Fallback match id leaked as bracket id');
+      } else assert.ok(match.tournament.url);
+      assert.ok(match.series.url);
+    }
+    const scores = await (await fetch(`${base}/api/agent/matches?game=${game}&include_results=true&status=finished`)).json();
+    validate(spec.paths['/api/agent/matches'].get.responses['200'].content['application/json'].schema, scores);
+    assert.ok(scores.matches.some(match => match.opponents.some(team => 'score' in team)));
+  }
+  assert.equal((await fetch(base + '/api/agent/matches?game=bad')).status, 400);
+  console.log('PASS: site-wide agent catalog, guide/content types, OpenAPI response schemas, page canonicals, JSON-LD, sitemap, noindex unavailable matches, spoiler safety and per-page freshness.');
   console.log('PASS: 14 live routes, 4 non-live previews and both feeds; live-only primary/alternate controls with preserved data, agent guide, separate live/results, confirmed winners only, public schedule links, no personal controls, login removed, Worlds spoilers hidden, preserved calendar feed and zoom metadata. Browser layout/interaction checks are separate.');
 } finally {
   if (server && server.exitCode == null) { server.kill('SIGTERM'); await serverExit; }

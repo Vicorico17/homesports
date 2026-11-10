@@ -64,9 +64,12 @@ try {
   const agentResponse = await fetch(`${base}/api/agent/matches?game=lol&limit=1`);
   const agent = await agentResponse.json();
   assert.equal(agentResponse.status, 200);
-  assert.equal(agent.schemaVersion, '1.0');
+  assert.equal(agent.schemaVersion, '1.1');
   assert.equal(agent.source.demo, false);
   assert.equal(agent.source.updatedAt, lol.updatedAt);
+  assert.equal(agent.source.freshUntil, lol.freshUntil);
+  for (const route of ['/api/agent/site', '/llms-full.txt']) assert.equal((await fetch(base + route)).status, 200);
+  assert.equal(feedCalls(await calls()).length, before, 'Static site discovery must not call the provider');
   assert.equal(agent.resultsIncluded, false);
   assert.equal(agent.matches[0].id, lol.matches[0].id);
   assert.equal('score' in agent.matches[0].opponents[0], false);
@@ -85,7 +88,7 @@ try {
   assert.match(await guide.text(), /not yet available at \/mcp/);
   const agentPage = await fetch(`${base}/agents`);
   assert.equal(agentPage.status, 200);
-  assert.match(await agentPage.text(), /A clear view of the matchboard/);
+  assert.match(await agentPage.text(), /A readable map of HomeSports/);
   assert.match(await (await fetch(`${base}/robots.txt`)).text(), /Allow: \/api\/agent\//);
   const valorant = await (await fetch(`${base}/api/matches?game=valorant`)).json();
   assert.equal(valorant.game, 'valorant'); assert.notEqual(valorant.matches[0].id, lol.matches[0].id);

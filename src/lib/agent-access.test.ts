@@ -33,7 +33,7 @@ test("agent query rejects typos, duplicates, invalid ranges and non-integers", (
 
 test("agent projection hides scores, map winners, odds and unrelated fields", () => {
   const result = createAgentFeed(feed, query(), "https://homesports.test");
-  assert.deepEqual(result.matches[0].opponents, [{ id: 1, name: "Team A" }, { id: 2, name: "Team B" }]);
+  assert.deepEqual(result.matches[0].opponents, [{ id: 1, name: "Team A", url: "https://homesports.test/teams/1" }, { id: 2, name: "Team B", url: "https://homesports.test/teams/2" }]);
   assert.equal(result.matches[0].startsAt, "2026-11-10T12:00:00.000Z");
   assert.equal(result.matches[0].url, "https://homesports.test/match/42?game=lol");
   assert.equal(result.resultsIncluded, false);
@@ -78,7 +78,7 @@ test("demo and degraded source quality are explicit even for empty feeds", () =>
 test("unknown times and missing team identifiers remain null", () => {
   const result = createAgentFeed({ ...feed, matches: [{ ...match, beginAt: "invalid", opponents: [{ name: "TBD" }] }] }, query());
   assert.equal(result.matches[0].startsAt, null);
-  assert.deepEqual(result.matches[0].opponents, [{ id: null, name: "TBD" }]);
+  assert.deepEqual(result.matches[0].opponents, [{ id: null, name: "TBD", url: null }]);
 });
 
 test("stream projection rejects unsafe URLs and preserves optional source provenance", () => {
@@ -141,4 +141,41 @@ test("guide, discovery, and OpenAPI consistently describe the implemented HTTP A
   assert.equal(spec.paths["/api/agent/matches"].get.operationId, "listMatches");
   assert.equal(spec.paths["/api/agent/matches"].get.parameters.length, 7);
   assert.deepEqual(spec.security, []);
+});
+
+
+test("agent details link to the correct game without inventing unavailable ids", () => {
+  const result = createAgentFeed({ ...feed, game: "valorant" }, query("game=valorant"), "https://homesports.test");
+  assert.equal(result.matches[0].tournament.url, "https://homesports.test/valorant/competition/7");
+  assert.equal(result.matches[0].tournament.bracketUrl, "https://homesports.test/valorant/bracket/7");
+  assert.equal(result.matches[0].series.url, "https://homesports.test/valorant/competition/series/9");
+  assert.equal(result.matches[0].opponents[0].url, "https://homesports.test/valorant/teams/1");
+  const missing = createAgentFeed({ ...feed, matches: [{ ...match, tournamentId: 0, serieId: undefined, hasBracket: false }] }, query());
+  assert.equal(missing.matches[0].tournament.url, null);
+  assert.equal(missing.matches[0].tournament.bracketUrl, null);
+  assert.equal(missing.matches[0].series.url, null);
+});
+
+test("non-live matches do not advertise streams as current broadcasts or replays", () => {
+  for (const status of ["upcoming", "finished"] as const) {
+    const result = createAgentFeed({ ...feed, matches: [{ ...match, status }] }, query());
+    assert.deepEqual(result.matches[0].streams, []);
+  }
+});
+
+test("freshness deadline is preserved or explicitly unknown and stale data warns", () => {
+  const result = createAgentFeed({ ...feed, freshUntil: "2000-01-01T00:00:00Z" }, query());
+  assert.equal(result.source.freshUntil, "2000-01-01T00:00:00Z");
+  assert.match(result.warnings.join(" "), /freshness deadline has passed/);
+  assert.equal(createAgentFeed(feed, query()).source.freshUntil, null);
+});
+
+
+test("agent API suppresses fallback tournament ids in new and legacy feed snapshots", () => {
+  for (const candidate of [{ ...match, tournamentId: match.id }, { ...match, tournamentIdVerified: false }]) {
+    const result = createAgentFeed({ ...feed, matches: [candidate] }, query());
+    assert.equal(result.matches[0].tournament.id, null);
+    assert.equal(result.matches[0].tournament.url, null);
+    assert.equal(result.matches[0].tournament.bracketUrl, null);
+  }
 });

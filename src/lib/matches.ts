@@ -20,6 +20,7 @@ export type Match = {
   leagueImageUrl?: string | null;
   tournament: string;
   tournamentId: number;
+  tournamentIdVerified?: boolean;
   tournamentImageUrl?: string | null;
   hasBracket: boolean;
   streams: MatchStream[];
@@ -90,6 +91,7 @@ export function normalizeMatch(match: PandaMatch, requestedStatus: MatchStatus, 
     leagueImageUrl: match.league?.image_url,
     tournament: match.tournament?.name ?? "",
     tournamentId: match.tournament?.id ?? match.id,
+    tournamentIdVerified: typeof match.tournament?.id === "number" && Number.isSafeInteger(match.tournament.id) && match.tournament.id > 0,
     tournamentImageUrl: match.tournament?.image_url,
     hasBracket: match.tournament?.has_bracket ?? false,
     streams: normalizeMatchStreams(match),
