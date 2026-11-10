@@ -6,7 +6,8 @@
 - [ ] Add Redis for live rounds, countdowns, realtime fan-out, and distributed locks.
 - [ ] Replace Vercel warm-instance memory with the shared state layer.
 - [ ] Add database migrations, backups, restore testing, and retention rules.
-- [ ] Add idempotency around prediction resolution and score awards.
+- [x] Reject replayed/stale producer revisions and round IDs in the single-process backend.
+- [ ] Implement transactional revision/idempotency checks in the future shared database adapter.
 
 ## Twitch application and Extension
 
@@ -40,7 +41,7 @@
 
 - [ ] Connect the production database and Redis environment variables in Vercel.
 - [ ] Add all Twitch secrets and account allowlists in Vercel.
-- [ ] Disable unprotected demo-producer mode in production.
+- [x] Disable unprotected demo-producer mode in production; local demo access is explicit.
 - [ ] Promote a verified deployment to the production domain.
 - [ ] Update the Twitch CDN bundle's EBS origin if the production hostname changes.
 - [ ] Verify Privacy and Terms URLs on the production domain.
@@ -68,9 +69,11 @@
 
 ## Security and privacy
 
-- [ ] Add request and vote rate limiting.
-- [ ] Add CSRF protection for standalone producer actions.
-- [ ] Add security headers and a production Content Security Policy.
+- [x] Add bounded per-process request/vote limits and request-body size limits.
+- [ ] Add distributed limits and validate capacity under broadcast load.
+- [x] Add configured same-origin protection for standalone authenticated mutations.
+- [x] Add API security headers and a Node-served Content Security Policy.
+- [ ] Verify production/Twitch-hosted CSP and all asset/domain allowlists.
 - [ ] Rotate Twitch OAuth, Extension, and session secrets on a schedule.
 - [ ] Add producer/moderator audit records.
 - [ ] Create viewer data export and deletion workflows.
