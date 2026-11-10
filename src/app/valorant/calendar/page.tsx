@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site-discovery";
 import { CalendarGrid } from "@/components/calendar-grid";
 import { getMatches } from "@/lib/matches";
 
 export const revalidate = 60;
-export const metadata: Metadata = { title: "Valorant match calendar", description: "Upcoming Valorant esports matches in your timezone.", alternates: { canonical: "/valorant/calendar" } };
+
+export const metadata = pageMetadata("/valorant/calendar");
 
 export default async function ValorantCalendarPage() {
   const { matches } = await getMatches("valorant");

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { panda } from "@/lib/pandascore";
 import { notFound } from "next/navigation";
 import { PlayoffBracket } from "@/components/playoff-bracket";
@@ -14,6 +15,12 @@ export const revalidate = 60;
 // Generate on first visit, then reuse the complete route through ISR.
 export function generateStaticParams() { return []; }
 
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id))) return { title: "Tournament bracket", robots: { index: false } };
+  return { title: "League of Legends playoff bracket", description: "Published or explicitly labelled fallback League of Legends tournament bracket.", alternates: { canonical: `/bracket/${id}` } };
+}
 
 export default async function BracketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

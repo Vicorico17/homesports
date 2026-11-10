@@ -25,7 +25,7 @@ globalThis.fetch = async function fixtureFetch(input, init) {
     const status = url.pathname.endsWith('/running') ? 'running' : url.pathname.endsWith('/past') ? 'finished' : 'not_started';
     body = url.searchParams.get('page') === '1' ? matches.filter(match => match.status === status) : [];
     // A non-live record on the running endpoint must not become LIVE.
-    if (status === 'running' && url.searchParams.get('page') === '1') body.push({ ...matches[1], id: offset + 1010, name: 'Not started despite running endpoint' });
+    if (status === 'running' && url.searchParams.get('page') === '1') body.push({ ...matches[1], id: offset + 1010, name: 'Not started despite running endpoint', tournament: { name: 'Tournament id not published', has_bracket: true } });
   } else if (/^\/matches\/\d+$/.test(url.pathname)) body = matches.find(match => String(match.id) === url.pathname.split('/').pop()) ?? null;
   else if (/^\/teams\/\d+$/.test(url.pathname)) body = team(Number(url.pathname.split('/').pop()));
   else if (/^\/tournaments\/\d+$/.test(url.pathname)) body = { ...matches[0].tournament, videogame: { slug: game }, league: matches[0].league };

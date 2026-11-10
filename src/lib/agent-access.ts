@@ -1,7 +1,8 @@
 import type { Match, MatchFeed, MatchStatus } from "./matches.ts";
 import type { Game } from "./game.ts";
+import { publicTournamentId } from "./public-links.ts";
 
-export const AGENT_SCHEMA_VERSION = "1.0";
+export const AGENT_SCHEMA_VERSION = "1.1";
 export const AGENT_REFRESH_SECONDS = 60;
 export const AGENT_MAX_LIMIT = 50;
 
@@ -65,6 +66,9 @@ function publicHttpsUrl(value?: string): string | null {
 }
 
 function projectMatch(match: Match, query: AgentQuery, origin: string) {
+  const tournamentId = publicTournamentId(match);
+  const prefix = query.game === "valorant" ? "/valorant" : "";
+  const detailUrl = (type: string, id?: number | null) => typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? `${origin}${prefix}/${type}/${id}` : null;
   return {
     id: match.id,
     url: `${origin}/match/${match.id}?game=${query.game}`,
@@ -72,15 +76,15 @@ function projectMatch(match: Match, query: AgentQuery, origin: string) {
     startsAt: match.beginAt && Number.isFinite(Date.parse(match.beginAt)) ? new Date(match.beginAt).toISOString() : null,
     rescheduled: match.rescheduled,
     league: match.league,
-    tournament: { id: match.tournamentId, name: match.tournament },
-    series: { id: match.serieId ?? null, name: match.serie },
+    tournament: { id: tournamentId, name: match.tournament, url: detailUrl("competition", tournamentId), bracketUrl: match.hasBracket ? detailUrl("bracket", tournamentId) : null },
+    series: { id: match.serieId ?? null, name: match.serie, url: detailUrl("competition/series", match.serieId) },
     opponents: match.opponents.map(team => ({
-      id: team.id ?? null, name: team.name,
+      id: team.id ?? null, name: team.name, url: detailUrl("teams", team.id),
       ...(query.includeResults && typeof team.score === "number" && Number.isFinite(team.score) ? { score: team.score } : {}),
     })),
     bestOf: match.bestOf,
     importance: { stars: match.importance, reason: match.importanceReason },
-    streams: match.streams.flatMap(stream => {
+    streams: (match.status === "running" ? match.streams : []).flatMap(stream => {
       const url = publicHttpsUrl(stream.url);
       if (!url) return [];
       // Stream enrichment is optional and shared with the regular matchboard.
@@ -112,13 +116,14 @@ export function createAgentFeed(feed: MatchFeed, query: AgentQuery, origin = sit
   return {
     schemaVersion: AGENT_SCHEMA_VERSION,
     game: feed.game,
-    source: { name: feed.source, status: feed.sourceStatus, demo: feed.demo, updatedAt: feed.updatedAt },
+    source: { name: feed.source, status: feed.sourceStatus, demo: feed.demo, updatedAt: feed.updatedAt, freshUntil: feed.freshUntil ?? null },
     coverage: "Current matchboard snapshot only; not a complete schedule or historical archive.",
     refreshAfterSeconds: AGENT_REFRESH_SECONDS,
     resultsIncluded: query.includeResults,
     warnings: [
       ...(feed.demo ? ["Demo data: do not report these matches as real fixtures or results."] : []),
       ...(feed.sourceStatus === "unavailable" ? ["The provider is unavailable, partial, or stale. Verify before claiming current status or an empty schedule."] : []),
+      ...(feed.freshUntil && Date.parse(feed.freshUntil) < Date.now() ? ["The snapshot freshness deadline has passed. Refetch before claiming current status; retained data may still be stale."] : []),
       "Schedules may change. Running status and series scores are provider snapshots, not real-time game telemetry.",
     ],
     pagination: { offset: query.offset, limit: query.limit, total: filtered.length,
