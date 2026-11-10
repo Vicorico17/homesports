@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MatchStreamLinks } from "@/components/match-stream-links";
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import type { BracketMatch } from "@/lib/bracket";
 import type { Match } from "@/lib/matches";
@@ -13,5 +14,5 @@ export function ValorantCompetition({ title, league, logo, standings, matches, b
 
 function MatchRow({ match }: { match: Match }) {
   const date = match.beginAt && Number.isFinite(Date.parse(match.beginAt)) ? new Date(match.beginAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC" : "Date TBD";
-  return <article className="valorant-history-row"><span><b>{date}</b><Link href={`/valorant/competition/${match.tournamentId}`}>{match.tournament || match.league}</Link></span><strong>{match.opponents.length ? match.opponents.map(team => team.name).join(" vs ") : match.name}</strong><span>{match.status === "running" ? "LIVE" : match.status === "finished" ? match.opponents.map(team => team.score ?? "—").join(" – ") : "Upcoming"}</span></article>;
+  return <article className="valorant-history-row"><span><b>{date}</b><Link href={`/valorant/competition/${match.tournamentId}`}>{match.tournament || match.league}</Link></span><strong>{match.opponents.length ? match.opponents.map(team => team.name).join(" vs ") : match.name}</strong><span>{match.status === "running" ? "LIVE" : match.status === "finished" ? match.opponents.map(team => team.score ?? "—").join(" – ") : "Upcoming"}</span><MatchStreamLinks streams={match.streams} status={match.status} matchId={match.id} matchName={match.name} league={match.league} compact /></article>;
 }

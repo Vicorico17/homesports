@@ -1,4 +1,5 @@
 import { getMatches, normalizeMatch, type MatchFeed, type PandaMatch } from "@/lib/matches";
+import { enrichMatchStreams } from "@/lib/stream-fallbacks";
 import { panda } from "@/lib/pandascore";
 import { isWorlds2026Match, worldsStage } from "@/lib/worlds";
 import type { WorldsData } from "@/lib/worlds";
@@ -31,5 +32,5 @@ export async function getWorldsData(existingFeed?: MatchFeed): Promise<WorldsDat
     const match = all.find(match => match.tournamentId === id)!;
     return { tournamentId: id, stage: worldsStage(match), matches: Array.isArray(bracket) ? bracket : [], available: Array.isArray(bracket) && bracket.length > 0 };
   }));
-  return { matches: all, brackets, updatedAt: feed.updatedAt, sourceStatus: feed.sourceStatus, complete };
+  return { matches: await enrichMatchStreams(all, "lol"), brackets, updatedAt: feed.updatedAt, sourceStatus: feed.sourceStatus, complete };
 }
