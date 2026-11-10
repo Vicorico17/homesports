@@ -1,3 +1,4 @@
+import { panda } from "@/lib/pandascore";
 import { notFound } from "next/navigation";
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { type BracketMatch } from "@/lib/bracket";
@@ -18,9 +19,7 @@ export function generateStaticParams() { return []; }
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   if (!/^\d+$/.test(id)) return { title: "Competition season", robots: { index: false } };
-  const token = process.env.PANDASCORE_API_KEY;
-  const response = token ? await fetch(`https://api.pandascore.co/series/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }).catch(() => null) : null;
-  const serie = response?.ok ? await response.json() as { full_name?: string; name?: string } : null;
+  const serie = await panda<{ full_name?: string; name?: string }>(`series/${id}`, 300);
   const name = serie?.full_name ?? serie?.name;
   return { title: name ?? "Competition season", description: name ? `${name} schedule, standings, results, and playoffs on HomeSports.` : "League of Legends season schedule and standings on HomeSports.", alternates: { canonical: `/competition/series/${id}` } };
 }
@@ -34,18 +33,17 @@ export default async function SeriesCompetitionPage({ params }: { params: Promis
   const { id } = await params;
   if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id))) notFound();
   const { matches: feedMatches } = await getMatches();
-  const token = process.env.PANDASCORE_API_KEY;
-  const response = token ? await fetch(`https://api.pandascore.co/series/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }) : null;
-  const series = response?.ok ? await response.json() as { full_name?: string; name?: string; year?: number; league?: { name?: string; image_url?: string | null } } : null;
-  const seriesMatchesResponse = token ? await fetch(`https://api.pandascore.co/series/${id}/matches?per_page=100&sort=-begin_at`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } }) : null;
-  const seriesMatchesPayload = seriesMatchesResponse?.ok ? await seriesMatchesResponse.json() as PandaMatch[] : [];
+  const [series, history, stages] = await Promise.all([
+    panda<{ full_name?: string; name?: string; year?: number; league?: { name?: string; image_url?: string | null } }>(`series/${id}`, 300),
+    panda<PandaMatch[]>(`series/${id}/matches?per_page=100&sort=-begin_at`),
+    panda<{ id: number; name?: string; has_bracket?: boolean }[]>(`series/${id}/tournaments?per_page=100`, 300),
+  ]);
+  const seriesMatchesPayload = history ?? [];
   const seriesMatches = seriesMatchesPayload.length ? seriesMatchesPayload.map((match) => normalizeMatch(match, match.status === "running" ? "running" : match.status === "finished" ? "finished" : "upcoming")) : feedMatches.filter((match) => String(match.serieId) === id);
   const source = seriesMatches[0];
-  const tournamentsResponse = token ? await fetch(`https://api.pandascore.co/series/${id}/tournaments?per_page=100`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }) : null;
-  const tournaments = tournamentsResponse?.ok ? await tournamentsResponse.json() as { id: number; name?: string; has_bracket?: boolean }[] : [];
+  const tournaments = stages ?? [];
   const playoffTournament = tournaments.find((tournament) => tournament.has_bracket && /playoff/i.test(tournament.name ?? "")) ?? tournaments.find((tournament) => tournament.has_bracket);
-  const bracketResponse = token && playoffTournament ? await fetch(`https://api.pandascore.co/tournaments/${playoffTournament.id}/brackets`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } }) : null;
-  const pandaPlayoffMatches = bracketResponse?.ok ? await bracketResponse.json() as BracketMatch[] : [];
+  const pandaPlayoffMatches = playoffTournament ? await panda<BracketMatch[]>(`tournaments/${playoffTournament.id}/brackets`) ?? [] : [];
   const title = series?.full_name ?? source?.serie ?? series?.name ?? "Competition season";
   const league = series?.league?.name ?? source?.league ?? "COMPETITION";
   const logo = series?.league?.image_url ?? source?.leagueImageUrl;

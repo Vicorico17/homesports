@@ -1,11 +1,16 @@
 // Used only by test-production-cache.mjs, never by the application runtime.
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async function fixtureFetch(input, init) {
   const url = new URL(typeof input === 'string' ? input : input.url ?? String(input));
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return originalFetch(input, init);
   if (!['api.pandascore.co', 'lol.fandom.com'].includes(url.hostname)) throw Error(`Unexpected external request in cache test: ${url.hostname}`);
   appendFileSync(process.env.CACHE_TEST_LOG, `${url.href}\n`);
+  const mode = process.env.CACHE_TEST_MODE_FILE ? readFileSync(process.env.CACHE_TEST_MODE_FILE, 'utf8') : 'healthy';
+  if (mode === 'rate-limited' && url.hostname === 'api.pandascore.co') {
+    return new Response(null, { status: 429, headers: { 'retry-after': '60' } });
+  }
+
   const game = url.pathname.startsWith('/valorant') || /\/(?:teams|tournaments|series)\/1[123]0(?:\/|$)/.test(url.pathname) ? 'valorant' : 'lol';
   const offset = game === 'valorant' ? 100 : 0;
   const team = id => ({ id, name: `Fixture ${id}`, videogame: { slug: game }, players: [] });

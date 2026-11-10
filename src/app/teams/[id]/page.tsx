@@ -1,3 +1,4 @@
+import { panda } from "@/lib/pandascore";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getMatches } from "@/lib/matches";
@@ -42,20 +43,24 @@ export function generateStaticParams() { return []; }
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   if (!/^\d+$/.test(id)) return { title: "Team", robots: { index: false } };
-  const token = process.env.PANDASCORE_API_KEY;
-  const response = token ? await fetch(`https://api.pandascore.co/teams/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }).catch(() => null) : null;
-  const team = response?.ok ? await response.json() as { name?: string } : null;
+  const team = await panda<{ name?: string }>(`teams/${id}`, 300);
   return { title: team?.name ?? "Team", description: team?.name ? `${team.name} roster, upcoming matches, results, and calendar on HomeSports.` : "League of Legends team matches and roster on HomeSports.", alternates: { canonical: `/teams/${id}` } };
 }
 
 export default async function TeamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!/^\d+$/.test(id)) notFound(); const { matches } = await getMatches(); const localMatches = matches.filter((match) => match.opponents.some((team) => String(team.id) === id)); const localTeam = localMatches.flatMap((match) => match.opponents).find((opponent) => String(opponent.id) === id);
   let teamName = localTeam?.name; let teamImage = localTeam?.imageUrl; let players: Player[] = []; let teamMatches: TeamMatch[] = []; const token = process.env.PANDASCORE_API_KEY;
-  if (token) { const headers = { Authorization: `Bearer ${token}` }; const [teamResponse, matchesResponse] = await Promise.all([fetch(`https://api.pandascore.co/teams/${id}`, { headers, next: { revalidate: 300 } }), fetch(`https://api.pandascore.co/teams/${id}/matches?sort=-begin_at&per_page=20`, { headers, next: { revalidate: 60 } })]); if (teamResponse.ok) { const profile = await teamResponse.json() as { name?: string; image_url?: string | null; players?: Player[] }; teamName = profile.name ?? teamName; teamImage = profile.image_url ?? teamImage; players = profile.players ?? []; } if (matchesResponse.ok) teamMatches = await matchesResponse.json() as TeamMatch[]; }
+  if (token) {
+    const [profile, history] = await Promise.all([
+      panda<{ name?: string; image_url?: string | null; players?: Player[] }>(`teams/${id}`, 300),
+      panda<TeamMatch[]>(`teams/${id}/matches?sort=-begin_at&per_page=20`),
+    ]);
+    if (profile) { teamName = profile.name ?? teamName; teamImage = profile.image_url ?? teamImage; players = profile.players ?? []; }
+    if (history) teamMatches = history;
+  }
   if (token && localTeam?.name && teamName && normalizedPlayerName(localTeam.name) !== normalizedPlayerName(teamName)) {
-    const response = await fetch(`https://api.pandascore.co/lol/teams?search[name]=${encodeURIComponent(localTeam.name)}&per_page=20`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 3600 } });
-    if (response.ok) {
-      const candidates = await response.json() as { id: number; name: string }[];
+    const candidates = await panda<{ id: number; name: string }[]>(`lol/teams?search[name]=${encodeURIComponent(localTeam.name)}&per_page=20`, 3600);
+    if (candidates) {
       const exact = candidates.find((team) => normalizedPlayerName(team.name) === normalizedPlayerName(localTeam.name));
       if (exact && String(exact.id) !== id) redirect(`/teams/${exact.id}`);
     }

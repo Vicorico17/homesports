@@ -8,7 +8,7 @@ export async function getWorldsData(existingFeed?: MatchFeed): Promise<WorldsDat
   const feed = existingFeed ?? await getMatches();
   const matches = feed.demo ? [] : feed.matches.filter(isWorlds2026Match);
   const seriesIds = [...new Set(matches.flatMap(match => match.serieId ? [match.serieId] : []))];
-  let complete = !feed.demo;
+  let complete = feed.sourceStatus === "healthy";
   const allMatches = new Map(matches.map(match => [match.id, match]));
   // Fetch the season directly so old Worlds matches do not fall out of the general matchboard window.
   for (const id of seriesIds) {

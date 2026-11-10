@@ -32,7 +32,7 @@ function subscribeToSpoilers(callback: () => void) {
 function matchTime(value: string, local: boolean) {
   if (!value || !Number.isFinite(Date.parse(value))) return "Time TBD";
   const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" };
-  return new Intl.DateTimeFormat(undefined, local ? options : { ...options, timeZone: "UTC" }).format(new Date(value));
+  return new Intl.DateTimeFormat(local ? undefined : "en-US", local ? options : { ...options, timeZone: "UTC" }).format(new Date(value));
 }
 
 export function WorldsHub({ matches: initialMatches, brackets: initialBrackets, updatedAt: initialUpdatedAt, sourceStatus: initialSourceStatus }: { matches: Match[]; brackets: WorldsData["brackets"]; updatedAt: string; sourceStatus: string }) {

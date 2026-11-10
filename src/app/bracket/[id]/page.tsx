@@ -1,3 +1,4 @@
+import { panda } from "@/lib/pandascore";
 import { notFound } from "next/navigation";
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { type BracketMatch } from "@/lib/bracket";
@@ -17,15 +18,13 @@ export function generateStaticParams() { return []; }
 export default async function BracketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id))) notFound();
-  const token = process.env.PANDASCORE_API_KEY;
   const { matches: feedMatches } = await getMatches();
   const localMatch = feedMatches.find((match) => String(match.tournamentId) === id);
-  const [bracketResponse, tournamentResponse] = token ? await Promise.all([
-    fetch(`https://api.pandascore.co/tournaments/${id}/brackets`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } }),
-    fetch(`https://api.pandascore.co/tournaments/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }),
-  ]) : [null, null];
-  const pandaMatches = bracketResponse?.ok ? await bracketResponse.json() as BracketMatch[] : [];
-  const tournament = tournamentResponse?.ok ? await tournamentResponse.json() as { name?: string; league?: { name?: string } } : null;
+  const [bracket, tournament] = await Promise.all([
+    panda<BracketMatch[]>(`tournaments/${id}/brackets`),
+    panda<{ name?: string; league?: { name?: string } }>(`tournaments/${id}`, 300),
+  ]);
+  const pandaMatches = bracket ?? [];
   const leaguepedia = await getLeaguepediaCompetition([localMatch?.tournament ?? "", localMatch?.serie ?? "", tournament?.name ?? ""]);
   const wikiMatches: BracketMatch[] = (leaguepedia?.matches ?? []).filter(isVerifiedPlayoffMatch).map((match, index) => ({ id: index + 1, name: [match.Phase, match.Round].filter(Boolean).join(" ") || "Playoffs", status: match.Winner ? "finished" : "not_started", scheduled_at: match.DateTime_UTC ?? null, opponents: [{ opponent: { name: match.Team1 } }, { opponent: { name: match.Team2 } }], results: match.Winner ? [{ score: numericStat(match.Team1Final ?? match.Team1Score) }, { score: numericStat(match.Team2Final ?? match.Team2Score) }] : [] }));
   const matches = pandaMatches.length ? pandaMatches : wikiMatches;

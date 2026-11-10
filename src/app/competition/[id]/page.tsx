@@ -1,3 +1,4 @@
+import { panda } from "@/lib/pandascore";
 import { notFound } from "next/navigation";
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { type BracketMatch } from "@/lib/bracket";
@@ -21,15 +22,8 @@ export function generateStaticParams() { return []; }
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   if (!/^\d+$/.test(id)) return { title: "Competition", robots: { index: false } };
-  const token = process.env.PANDASCORE_API_KEY;
-  const response = token ? await fetch(`https://api.pandascore.co/tournaments/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }).catch(() => null) : null;
-  const tournament = response?.ok ? await response.json() as { name?: string } : null;
+  const tournament = await panda<{ name?: string }>(`tournaments/${id}`, 300);
   return { title: tournament?.name ?? "Competition", description: tournament?.name ? `${tournament.name} standings, results, and playoff bracket on HomeSports.` : "League of Legends tournament standings and bracket on HomeSports.", alternates: { canonical: `/competition/${id}` } };
-}
-
-async function panda<T>(path: string, token: string) {
-  const response = await fetch(`https://api.pandascore.co/${path}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
-  return response.ok ? (await response.json() as T) : null;
 }
 
 function resultFor(match: TournamentMatch, teamId?: number) { return match.results?.find((result) => result.team_id === teamId)?.score; }
@@ -47,10 +41,10 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
 
   if (token) {
     const [tournamentData, standingsData, matchesData, bracketData] = await Promise.all([
-      panda<Tournament>(`tournaments/${id}`, token),
-      panda<Standing[]>(`tournaments/${id}/standings?per_page=100`, token),
-      panda<TournamentMatch[]>(`tournaments/${id}/matches?per_page=100&sort=-begin_at`, token),
-      panda<BracketMatch[]>(`tournaments/${id}/brackets`, token),
+      panda<Tournament>(`tournaments/${id}`),
+      panda<Standing[]>(`tournaments/${id}/standings?per_page=100`),
+      panda<TournamentMatch[]>(`tournaments/${id}/matches?per_page=100&sort=-begin_at`),
+      panda<BracketMatch[]>(`tournaments/${id}/brackets`),
     ]);
     tournament = tournamentData;
     standings = standingsData ?? [];
