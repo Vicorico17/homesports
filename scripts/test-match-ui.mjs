@@ -39,6 +39,12 @@ try {
   for (const route of liveRoutes) {
     const html = await page(route);
     assert.match(html, /class="live-badge"/, `Missing LIVE badge: ${route}`);
+    assert.doesNotMatch(html, /href="https:\/\/www\.twitch\.tv\/(upcomingfixture|finishedfixture)"/, `Non-live stream leaked on ${route}`);
+    if (!route.includes('/bracket/')) {
+      assert.match(html, /class="match-stream-primary"/, `Live primary stream missing: ${route}`);
+      assert.match(html, /class="match-stream-alternatives"/, `Live alternate streams missing: ${route}`);
+      assert.match(html, /href="https:\/\/www\.youtube\.com\/watch\?v=fixture1234"/, `Live alternate URL missing: ${route}`);
+    }
     assert.doesNotMatch(html, /class="follow-team-button|>Following<|Subscribe to calendar|Download \.ics/, `Personal controls on ${route}`);
     assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1(?:[",])/, `Zoom disabled on ${route}`);
     if (route.includes('/competition/')) {
@@ -55,12 +61,33 @@ try {
       assert.match(html, /href="\/match\/\d+\?game=(lol|valorant)"/);
     }
   }
+  for (const [game, firstId] of [['lol', 1000], ['valorant', 1100]]) {
+    const prefix = game === 'lol' ? '' : '/valorant';
+    const home = await page(prefix || '/');
+    assert.doesNotMatch(home, /<article class="[^"]*finished|>FINISHED<|>Finished<|Live coverage ended/, `Finished match shown on ${game} homepage`);
+    assert.ok(!home.includes(`href="/match/${firstId + 2}?game=${game}"`), `Finished match linked from ${game} homepage`);
+    assert.ok(!home.includes(`href="${prefix}/calendar"`), `Duplicate Schedule navigation on ${game} homepage`);
+    assert.ok(home.includes(`href="${prefix}/results"`), `Results navigation lost for ${game}`);
+    const results = await page(`${prefix}/results`);
+    assert.match(results, /class="match match-preview-card finished"/, `Historical matches lost from ${game} Results`);
+    assert.doesNotMatch(results, /match-stream-|Live coverage ended/, `Stream UI shown on ${game} Results`);
+    for (const id of [firstId + 1, firstId + 2]) {
+      const route = `/match/${id}?game=${game}`;
+      const html = await page(route);
+      assert.doesNotMatch(html, /match-stream-|href="https:\/\/(www\.)?(twitch\.tv|youtube\.com)\//, `Non-live preview has stream UI: ${route}`);
+    }
+    const feed = await (await fetch(`${base}/api/matches?game=${game}`)).json();
+    assert.equal(feed.matches.find(match => match.id === firstId + 10)?.status, 'upcoming', `Non-live source promoted to LIVE: ${game}`);
+    for (const id of [firstId, firstId + 1, firstId + 2]) {
+      assert.equal(feed.matches.find(match => match.id === id)?.streams.length, 2, `Underlying primary/alternate stream data lost: ${game}/${id}`);
+    }
+  }
   const agents = await page('/agents'); assert.match(agents, /For agents|Agent access|AI agents/i);
   const login = await page('/login'); assert.match(login, /No account needed/); assert.doesNotMatch(login, /<form|type="email"/);
   const worlds = await page('/worlds'); assert.match(worlds, /Worlds 2026/); assert.match(worlds, /Show results/);
   assert.doesNotMatch(worlds, /<b>[12]<\/b>/, 'Spoiler-hidden Worlds cards exposed scores');
   const calendar = await fetch(`${base}/api/calendar/team/10`); assert.equal(calendar.status, 200); assert.match(await calendar.text(), /BEGIN:VCALENDAR/);
-  console.log('PASS: 14 live routes and agent guide, separate live/results, confirmed winners only, public schedule links, no personal controls, login removed, Worlds spoilers hidden, preserved calendar feed and zoom metadata. Browser layout/interaction checks are separate.');
+  console.log('PASS: 14 live routes, 4 non-live previews and both feeds; live-only primary/alternate controls with preserved data, agent guide, separate live/results, confirmed winners only, public schedule links, no personal controls, login removed, Worlds spoilers hidden, preserved calendar feed and zoom metadata. Browser layout/interaction checks are separate.');
 } finally {
   if (server && server.exitCode == null) { server.kill('SIGTERM'); await serverExit; }
   await rm(workspace, { recursive: true, force: true });

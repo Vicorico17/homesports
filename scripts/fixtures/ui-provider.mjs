@@ -18,12 +18,14 @@ globalThis.fetch = async function fixtureFetch(input, init) {
     serie: { id: offset + 30, full_name: game === 'lol' ? 'World Championship 2026' : 'Valorant Champions 2026' },
     opponents: [{ opponent: team(offset + 10) }, { opponent: team(offset + 11) }],
     results: status === 'not_started' ? [] : [{ team_id: offset + 10, score: 2 }, { team_id: offset + 11, score: 1 }],
-    streams_list: [{ raw_url: 'https://www.twitch.tv/riotgames', language: 'en', official: true }, { raw_url: 'https://www.youtube.com/watch?v=fixture123', language: 'ro', official: false }],
+    streams_list: [{ raw_url: `https://www.twitch.tv/${status === 'running' ? 'riotgames' : status === 'not_started' ? 'upcomingfixture' : 'finishedfixture'}`, language: 'en', official: true }, { raw_url: 'https://www.youtube.com/watch?v=fixture1234', language: 'ro', official: false }],
   }));
   let body = [];
   if (/^\/(lol|valorant)\/matches\//.test(url.pathname)) {
     const status = url.pathname.endsWith('/running') ? 'running' : url.pathname.endsWith('/past') ? 'finished' : 'not_started';
     body = url.searchParams.get('page') === '1' ? matches.filter(match => match.status === status) : [];
+    // A non-live record on the running endpoint must not become LIVE.
+    if (status === 'running' && url.searchParams.get('page') === '1') body.push({ ...matches[1], id: offset + 1010, name: 'Not started despite running endpoint' });
   } else if (/^\/matches\/\d+$/.test(url.pathname)) body = matches.find(match => String(match.id) === url.pathname.split('/').pop()) ?? null;
   else if (/^\/teams\/\d+$/.test(url.pathname)) body = team(Number(url.pathname.split('/').pop()));
   else if (/^\/tournaments\/\d+$/.test(url.pathname)) body = { ...matches[0].tournament, videogame: { slug: game }, league: matches[0].league };

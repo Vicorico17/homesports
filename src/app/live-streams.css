@@ -8,15 +8,15 @@
 .league-logo { width:16px; height:16px; object-fit:contain; vertical-align:middle; margin:-2px 5px 0 0; }
 .team:has(.map-dots) { grid-template-columns:30px 1fr auto 25px; }.team:has(.map-dots) strong { grid-column:4; }.map-dots { display:flex; gap:3px; justify-content:flex-end; grid-column:3; }.map-dots i { width:7px; height:7px; border-radius:50%; background:#45463f; }.map-dots i.won { background:var(--lime); box-shadow:0 0 7px #b8f36a88; }
 
-.match-stream-links { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; position:relative; z-index:2; font-size:11px; }
-.match-stream-links a { display:inline-block; color:var(--lime); text-decoration:none; line-height:1.5; }
+.match-stream-links { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; position:relative; z-index:2; font-size:10px; }
+.match-stream-links a { display:inline-flex; align-items:center; min-height:24px; color:var(--lime); text-decoration:none; line-height:1.5; }
 .match-stream-links a:hover { text-decoration:underline; }
-.match-stream-links .match-stream-primary { border:1px solid #455334; background:#171a14; border-radius:3px; padding:7px 9px; font-weight:700; }
+.match-stream-links .match-stream-primary { border:1px solid #455334; background:#171a14; border-radius:3px; padding:4px 7px; font-weight:700; }
 .match-stream-links a:focus-visible, .match-stream-alternatives summary:focus-visible { outline:2px solid var(--lime); outline-offset:3px; }
 .match-stream-unavailable { display:block; color:#99998d; font-size:11px; line-height:1.5; }
-.match-stream-alternatives summary { cursor:pointer; color:#bcbcb0; padding:5px 0; }
-.match-stream-alternatives > div { display:flex; flex-wrap:wrap; gap:8px 14px; padding:8px 0; }
-.match > .match-stream-links, .match > .match-stream-unavailable { margin-bottom:12px; }
+.match-stream-alternatives summary { cursor:pointer; color:#bcbcb0; min-height:24px; padding:4px 0; }
+.match-stream-alternatives > div { display:flex; flex-wrap:wrap; gap:6px 12px; padding:6px 0; }
+.match > .match-stream-links, .match > .match-stream-unavailable { margin-bottom:9px; }
 .match-stream-links.compact { gap:4px; font-size:10px; }
 .match-stream-links.compact .match-stream-primary { padding:4px 6px; }
 .valorant-history-row > .match-stream-links, .valorant-history-row > .match-stream-unavailable { grid-column:1 / -1; }

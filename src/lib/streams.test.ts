@@ -37,12 +37,17 @@ test('recovers exact-match embed and legacy fields but never stale legacy over c
   assert.deepEqual(normalizeMatchStreams({}), []);
 });
 
-test('running and upcoming matches expose streams; completed/cancelled channels are not replays', () => {
-  const streams = normalizeMatchStreams({ streams_list: [{ raw_url: 'https://www.twitch.tv/valorant' }] });
+test('only running matches expose streams; all non-live statuses hide controls', () => {
+  const streams = normalizeMatchStreams({ streams_list: [{ raw_url: 'https://www.twitch.tv/valorant' }, { raw_url: 'https://www.twitch.tv/valorant_alt' }] });
+  const original = structuredClone(streams);
+  for (const status of ['upcoming', 'not_started', 'finished', 'canceled', 'cancelled', 'postponed', 'unknown', '']) {
+    assert.deepEqual(streamAvailability(status, streams), { label: '', available: false }, status);
+    assert.deepEqual(streamAvailability(status, []), { label: '', available: false }, status);
+  }
   assert.deepEqual(streamAvailability('running', streams), { label: 'Watch live', available: true });
-  assert.deepEqual(streamAvailability('upcoming', streams), { label: 'Open stream', available: true });
-  assert.equal(streamAvailability('running', []).label, 'No verified stream available');
-  assert.equal(streamAvailability('upcoming', []).label, 'Stream not announced');
-  assert.equal(streamAvailability('finished', streams).available, false);
-  assert.equal(streamAvailability('canceled', streams).available, false);
+  assert.deepEqual(streamAvailability('running', []), { label: 'No verified stream available', available: false });
+  // Status changes hide controls without deleting primary or alternate stream data.
+  for (const status of ['upcoming', 'running', 'finished', 'running']) streamAvailability(status, streams);
+  assert.deepEqual(streams, original);
+  assert.equal(streams.length, 2);
 });
