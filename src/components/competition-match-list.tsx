@@ -17,7 +17,7 @@ export function CompetitionMatchList({ matches, game = "lol" }: { matches: Match
       <div className="competition-match-meta">
         {match.status === "running" ? <LiveBadge /> : <span>{match.status === "finished" ? "FINISHED" : "UPCOMING"}</span>}
         <time dateTime={Number.isFinite(start) ? match.beginAt : undefined}>{time}</time>
-        <Link href={`${prefix}/competition/${match.tournamentId}`}>{match.tournament || match.league}</Link>
+        <Link href={`${prefix}/competition/${match.tournamentId}`}>{match.league || "Competition"}</Link>
         <span>Best of {match.bestOf}</span>
       </div>
       <div className="competition-match-teams">{[0, 1].map(index => {

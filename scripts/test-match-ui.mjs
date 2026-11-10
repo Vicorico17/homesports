@@ -45,6 +45,9 @@ try {
       assert.match(html, /class="match-stream-alternatives"/, `Live alternate streams missing: ${route}`);
       assert.match(html, /href="https:\/\/www\.youtube\.com\/watch\?v=fixture1234"/, `Live alternate URL missing: ${route}`);
     }
+    for (const card of html.match(/<article class="(?:match |competition-match |worlds-fixture |match-preview-card|valorant-history-row)[\s\S]*?<\/article>/g) ?? []) {
+      assert.doesNotMatch(card, />Knockout Stage<|class="competition-link"/, `Stage label shown on match card: ${route}`);
+    }
     assert.doesNotMatch(html, /class="follow-team-button|>Following<|Subscribe to calendar|Download \.ics/, `Personal controls on ${route}`);
     assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1(?:[",])/, `Zoom disabled on ${route}`);
     if (route.includes('/competition/')) {
@@ -81,6 +84,10 @@ try {
     for (const id of [firstId, firstId + 1, firstId + 2]) {
       assert.equal(feed.matches.find(match => match.id === id)?.streams.length, 2, `Underlying primary/alternate stream data lost: ${game}/${id}`);
     }
+  }
+  for (const route of ['/worlds', '/play']) {
+    const html = await page(route);
+    assert.doesNotMatch(html, /href="\/calendar"/, `Duplicate Schedule navigation remains: ${route}`);
   }
   const agents = await page('/agents'); assert.match(agents, /For agents|Agent access|AI agents/i);
   const login = await page('/login'); assert.match(login, /No account needed/); assert.doesNotMatch(login, /<form|type="email"/);
