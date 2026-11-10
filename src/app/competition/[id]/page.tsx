@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { type BracketMatch } from "@/lib/bracket";
 import Link from "next/link";
@@ -13,6 +14,9 @@ type Tournament = { name?: string; image_url?: string | null; league?: { name?: 
 type TournamentMatch = { id: number; status: string; begin_at: string; opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[]; results?: { team_id?: number; score?: number }[] };
 
 export const revalidate = 60;
+
+// Generate on first visit, then reuse the complete route through ISR.
+export function generateStaticParams() { return []; }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -33,6 +37,7 @@ function displayDate(value?: string | null) { if (!value) return "Date TBD"; con
 
 export default async function CompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id))) notFound();
   const { matches: feedMatches } = await getMatches();
   const token = process.env.PANDASCORE_API_KEY;
   let tournament: Tournament | null = null;

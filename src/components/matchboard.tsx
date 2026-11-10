@@ -1,5 +1,7 @@
 "use client";
 
+import { mergeMatchFeed, shouldPollMatchFeed } from "@/lib/client-match-feed";
+import { startClientPolling } from "@/lib/client-polling";
 import { useEffect, useMemo, useState } from "react";
 import type { MatchFeed, MatchStatus } from "@/lib/matches";
 import { FOLLOWED_TEAMS_EVENT, readFollowedTeams } from "@/components/follow-team-button";
@@ -43,8 +45,8 @@ function StarRating({ value }: { value: number }) {
 
 export function Matchboard({ matches: initialMatches, demo, source, sourceStatus, updatedAt, game, worlds, view = "all" }: MatchFeed & { worlds?: WorldsData; view?: MatchStatus | "all" }) {
   const prefix = gamePath(game);
-  const [matches, setMatches] = useState(initialMatches);
-  const [feed, setFeed] = useState({ demo, source, sourceStatus, updatedAt });
+  const [feed, setFeed] = useState<MatchFeed>({ matches: initialMatches, demo, source, sourceStatus, updatedAt, game });
+  const { matches } = feed;
   const [tab, setTab] = useState<BoardView>(view);
   const [followedTeams, setFollowedTeams] = useState<string[]>([]);
   const [minimum, setMinimum] = useState(1);
@@ -70,12 +72,22 @@ export function Matchboard({ matches: initialMatches, demo, source, sourceStatus
   }, []);
 
   useEffect(() => {
-    if (demo) return;
-    const refresh = () => fetch(`/api/matches?game=${game}`).then((response) => response.ok ? response.json() : null).then((data: MatchFeed | null) => { if (data?.matches) { setMatches(data.matches); setFeed({ demo: data.demo, source: data.source, sourceStatus: data.sourceStatus, updatedAt: data.updatedAt }); } }).catch(() => undefined);
-    refresh();
-    const timer = window.setInterval(refresh, 60_000);
-    return () => window.clearInterval(timer);
-  }, [demo, game]);
+    if (!shouldPollMatchFeed(sourceStatus)) return;
+    return startClientPolling(async (signal) => {
+      try {
+        const response = await fetch(`/api/matches?game=${game}`, { signal });
+        if (!response.ok) throw Error("Match refresh failed");
+        const data: MatchFeed = await response.json();
+        if (!Array.isArray(data.matches)) throw Error("Invalid match feed");
+        if (signal.aborted) return;
+        setFeed(previous => mergeMatchFeed(previous, data));
+        if (data.sourceStatus !== "healthy") throw Error("Match source unavailable");
+      } catch (error) {
+        if (!signal.aborted) setFeed(previous => ({ ...previous, sourceStatus: "unavailable" }));
+        throw error;
+      }
+    });
+  }, [sourceStatus, game]);
 
   return <div className="shell">
     <header><Link className="brand" href="/"><span>HOME</span>SPORTS</Link><p>{gameName(game)} esports, ranked by what matters.</p><nav className="game-switch" aria-label="Choose game"><Link className={game === "lol" ? "selected" : ""} href="/"><img src="/league-of-legends-logo.png" alt="" /><span>League of Legends</span></Link><Link className={game === "valorant" ? "selected" : ""} href="/valorant"><img src="/valorant-logo.png" alt="" /><span>Valorant</span></Link></nav><nav className="site-links" aria-label="Site">{game === "lol" && <><Link href="/worlds">Worlds 2026</Link><Link href="/play">Daily games</Link></>}<Link href={`${prefix}/results`}>Results</Link><Link href={`${prefix}/calendar`}>Calendar</Link>{game === "lol" && <Link href="/preselect-twitch-extension">Preselect</Link>}</nav><div className="pulse"><b /> {feed.sourceStatus === "healthy" ? `LIVE DATA · ${new Date(feed.updatedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}` : "DEGRADED DATA"}</div></header>

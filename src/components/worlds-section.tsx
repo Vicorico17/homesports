@@ -1,5 +1,6 @@
 "use client";
 
+import { startClientPolling } from "@/lib/client-polling";
 import Link from "next/link";
 import { MatchPreviewLink } from "@/components/match-preview-link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -32,20 +33,20 @@ export function WorldsSection({ initialData, filters }: { initialData: WorldsDat
   const [showResults, setShowResults] = useState(false);
   const local = useSyncExternalStore(subscribe, clientReady, serverReady);
   useEffect(() => {
-    const controller = new AbortController();
-    const refresh = async () => {
+    return startClientPolling(async (signal) => {
       try {
-        const response = await fetch("/api/worlds", { signal: controller.signal });
+        const response = await fetch("/api/worlds", { signal });
         if (!response.ok) throw Error("Worlds refresh failed");
         const next: WorldsData = await response.json();
         if (!Array.isArray(next.matches) || !Array.isArray(next.brackets)) throw Error("Invalid Worlds feed");
+        if (signal.aborted) return;
         setData(previous => next.sourceStatus === "healthy" ? next : { ...previous, sourceStatus: next.sourceStatus, complete: false });
-      } catch {
-        if (!controller.signal.aborted) setData(previous => ({ ...previous, sourceStatus: "unavailable", complete: false }));
+        if (next.sourceStatus !== "healthy") throw Error("Worlds source unavailable");
+      } catch (error) {
+        if (!signal.aborted) setData(previous => ({ ...previous, sourceStatus: "unavailable", complete: false }));
+        throw error;
       }
-    };
-    const timer = window.setInterval(refresh, 60_000);
-    return () => { controller.abort(); window.clearInterval(timer); };
+    });
   }, []);
   const matches = useMemo(() => filterWorldsMatches(data.matches, filters), [data.matches, filters]);
   const next = [...data.matches].filter(match => match.status !== "finished").sort((a, b) => Number(b.status === "running") - Number(a.status === "running") || (Date.parse(a.beginAt) || Infinity) - (Date.parse(b.beginAt) || Infinity))[0];

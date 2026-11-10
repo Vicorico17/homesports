@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { type BracketMatch } from "@/lib/bracket";
 import Link from "next/link";
@@ -10,6 +11,9 @@ import { isVerifiedPlayoffMatch, normalizedLabel, validDate } from "@/lib/data-q
 import { deriveStandings, numericStat } from "@/lib/standings";
 
 export const revalidate = 60;
+
+// Generate on first visit, then reuse the complete route through ISR.
+export function generateStaticParams() { return []; }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -28,6 +32,7 @@ function dateLabel(value: string) {
 
 export default async function SeriesCompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id))) notFound();
   const { matches: feedMatches } = await getMatches();
   const token = process.env.PANDASCORE_API_KEY;
   const response = token ? await fetch(`https://api.pandascore.co/series/${id}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } }) : null;

@@ -14,5 +14,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const upcoming: CalendarMatch[] = teamMatches.map(match => ({ id: match.id, begin_at: match.beginAt, name: match.name, league: { name: match.league }, tournament: { name: match.tournament }, opponents: match.opponents.map(team => ({ opponent: { name: team.name } })) }));
   const origin = new URL(request.url).origin;
   const calendar = buildTeamCalendar(teamName, upcoming, origin);
-  return new Response(calendar, { headers: { "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": `inline; filename="homesports-${game}-team-${id}.ics"`, "Cache-Control": "public, max-age=300" } });
+  return new Response(calendar, { headers: { "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": `inline; filename="homesports-${game}-team-${id}.ics"`, "Cache-Control": "public, max-age=0, s-maxage=300, stale-while-revalidate=60" } });
 }

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { validDate } from "@/lib/data-quality";
 import { type Game, gameName, rateValorantMatch } from "@/lib/game";
 import { marketAverage, matchOddsEvent, type OddsEvent, type OddsResult } from "@/lib/odds";
@@ -141,7 +142,7 @@ const demo: Match[] = [
   { id: 3, status: "finished", beginAt: new Date(Date.now() - 3_600_000).toISOString(), name: "Bilibili Gaming vs Top Esports", league: "LPL", tournament: "Summer Split", tournamentId: 3, hasBracket: false, streams: [], rescheduled: false, mapWinners: ["Bilibili Gaming", "Bilibili Gaming"], serie: "LPL 2026", bestOf: 3, importance: 3, importanceReason: "Top regional league", opponents: [{ id: 105, name: "Bilibili Gaming", score: 2 }, { id: 106, name: "Top Esports", score: 0 }] }
 ];
 
-export async function getMatches(game: Game = "lol"): Promise<MatchFeed> {
+async function loadMatches(game: Game): Promise<MatchFeed> {
   const token = process.env.PANDASCORE_API_KEY;
   if (!token) return { game, matches: game === "lol" ? demo : [], demo: true, source: "Demo", sourceStatus: "not-configured", updatedAt: new Date().toISOString() };
   const request = async (path: string, status: MatchStatus, page = 1) => {
@@ -174,4 +175,12 @@ export async function getMatches(game: Game = "lol"): Promise<MatchFeed> {
     console.error(error);
     return { game, matches: game === "lol" ? demo : [], demo: true, source: "Demo", sourceStatus: "unavailable", updatedAt: new Date().toISOString() };
   }
+}
+
+// Cache the normalized feed, not just the five raw HTTP responses. Pages, API
+// polling, calendars and Worlds all share one processed result per game.
+const cachedMatches = unstable_cache(loadMatches, ["match-feed-v1"], { revalidate: 60 });
+
+export function getMatches(game: Game = "lol"): Promise<MatchFeed> {
+  return cachedMatches(game);
 }
