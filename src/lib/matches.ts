@@ -173,7 +173,7 @@ async function loadMatches(game: Game): Promise<MatchFeed> {
 
 // Cache only successful normalized feeds. A failed revalidation leaves the last
 // successful result intact instead of replacing it with an empty/demo schedule.
-const cachedMatches = unstable_cache(singleFlight(loadMatches), ["match-feed-v4-live-status"], { revalidate: 60 });
+const cachedMatches = unstable_cache(singleFlight(loadMatches), ["match-feed-v3-streams"], { revalidate: 60 });
 
 export async function getMatches(game: Game = "lol"): Promise<MatchFeed> {
   try {
