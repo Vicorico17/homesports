@@ -1,11 +1,15 @@
+import { createPandaClient } from './panda-client';
+export type { PandaResult } from './panda-client';
+
+const client = createPandaClient({
+  fetch: (url, options) => fetch(url, options),
+  getToken: () => process.env.PANDASCORE_API_KEY,
+});
+
+export function pandaResult<T>(path: string, revalidate = 60) {
+  return client.request<T>(path, revalidate);
+}
+
 export async function panda<T>(path: string, revalidate = 60): Promise<T | null> {
-  const token = process.env.PANDASCORE_API_KEY;
-  if (!token) return null;
-  try {
-    const response = await fetch(`https://api.pandascore.co/${path}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate } });
-    return response.ok ? await response.json() as T : null;
-  } catch (error) {
-    console.error(`PandaScore request failed: ${path}`, error);
-    return null;
-  }
+  return (await pandaResult<T>(path, revalidate)).data;
 }

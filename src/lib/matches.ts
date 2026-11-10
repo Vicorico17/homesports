@@ -1,4 +1,6 @@
 import { unstable_cache } from "next/cache";
+import { pandaResult } from "@/lib/pandascore";
+import { loadMatchPages, normalizeMatchGroups, markStaleFeed, MatchFeedUnavailable, singleFlight } from "@/lib/match-feed-loader";
 import { validDate } from "@/lib/data-quality";
 import { type Game, gameName, rateValorantMatch } from "@/lib/game";
 import { marketAverage, matchOddsEvent, type OddsEvent, type OddsResult } from "@/lib/odds";
@@ -143,44 +145,37 @@ const demo: Match[] = [
 ];
 
 async function loadMatches(game: Game): Promise<MatchFeed> {
-  const token = process.env.PANDASCORE_API_KEY;
-  if (!token) return { game, matches: game === "lol" ? demo : [], demo: true, source: "Demo", sourceStatus: "not-configured", updatedAt: new Date().toISOString() };
-  const request = async (path: string, status: MatchStatus, page = 1) => {
-    const sort = path === "past" ? "-begin_at" : "begin_at";
-    const response = await fetch(`https://api.pandascore.co/${game}/matches/${path}?sort=${sort}&per_page=100&page=${page}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60 } });
-    if (!response.ok) throw new Error(`PandaScore returned ${response.status}`);
-    const sourceDate = response.headers.get("date");
-    return { matches: ((await response.json()) as PandaMatch[]).map((match) => normalizeMatch(match, status, game)), sourceDate: sourceDate && validDate(sourceDate) ? sourceDate : null };
+  if (!process.env.PANDASCORE_API_KEY) return { game, matches: game === "lol" ? demo : [], demo: true, source: "Demo", sourceStatus: "not-configured", updatedAt: new Date().toISOString() };
+  const { groups: rawGroups, complete } = await loadMatchPages(game, path => pandaResult<PandaMatch[]>(path));
+  const { groups, complete: validRecords } = normalizeMatchGroups(rawGroups, (match, status) => normalizeMatch(match, status, game));
+  if (!validRecords) console.error(`PandaScore ${game} feed contained invalid match data.`);
+  const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
+  const sortedMatches = groups.flatMap(group => group.matches).sort((a, b) => {
+      const statusDifference = statusRank[a.status] - statusRank[b.status];
+      if (statusDifference) return statusDifference;
+      const aTime = new Date(a.beginAt).getTime();
+      const bTime = new Date(b.beginAt).getTime();
+      if (a.status === "finished") return (Number.isFinite(bTime) ? bTime : -Infinity) - (Number.isFinite(aTime) ? aTime : -Infinity);
+      return (Number.isFinite(aTime) ? aTime : Infinity) - (Number.isFinite(bTime) ? bTime : Infinity);
+    });
+  const oldestSourceDate = groups.filter(group => group.matches.length > 0).map(group => group.sourceDate && Date.parse(group.sourceDate)).filter((value): value is number => typeof value === "number" && Number.isFinite(value)).sort((a, b) => a - b)[0];
+  const feed: MatchFeed = {
+    game, matches: await addPreMatchOdds(sortedMatches, game), demo: false, source: "PandaScore",
+    sourceStatus: complete && validRecords ? "healthy" : "unavailable", updatedAt: new Date(oldestSourceDate ?? Date.now()).toISOString(),
   };
-  try {
-    const groups = await Promise.all([
-      request("running", "running"),
-      request("upcoming", "upcoming", 1),
-      request("upcoming", "upcoming", 2),
-      request("past", "finished", 1),
-      request("past", "finished", 2)
-    ]);
-    const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
-    const sortedMatches = groups.flatMap(group => group.matches).sort((a, b) => {
-        const statusDifference = statusRank[a.status] - statusRank[b.status];
-        if (statusDifference) return statusDifference;
-        const aTime = new Date(a.beginAt).getTime();
-        const bTime = new Date(b.beginAt).getTime();
-        if (a.status === "finished") return (Number.isFinite(bTime) ? bTime : -Infinity) - (Number.isFinite(aTime) ? aTime : -Infinity);
-        return (Number.isFinite(aTime) ? aTime : Infinity) - (Number.isFinite(bTime) ? bTime : Infinity);
-      });
-    const oldestSourceDate = groups.map(group => group.sourceDate && Date.parse(group.sourceDate)).filter((value): value is number => typeof value === "number" && Number.isFinite(value)).sort((a, b) => a - b)[0];
-    return { game, matches: await addPreMatchOdds(sortedMatches, game), demo: false, source: "PandaScore", sourceStatus: "healthy", updatedAt: new Date(oldestSourceDate ?? Date.now()).toISOString() };
-  } catch (error) {
-    console.error(error);
-    return { game, matches: game === "lol" ? demo : [], demo: true, source: "Demo", sourceStatus: "unavailable", updatedAt: new Date().toISOString() };
-  }
+  if (!complete || !validRecords) throw new MatchFeedUnavailable(feed);
+  return feed;
 }
 
-// Cache the normalized feed, not just the five raw HTTP responses. Pages, API
-// polling, calendars and Worlds all share one processed result per game.
-const cachedMatches = unstable_cache(loadMatches, ["match-feed-v1"], { revalidate: 60 });
+// Cache only successful normalized feeds. A failed revalidation leaves the last
+// successful result intact instead of replacing it with an empty/demo schedule.
+const cachedMatches = unstable_cache(singleFlight(loadMatches), ["match-feed-v2"], { revalidate: 60 });
 
-export function getMatches(game: Game = "lol"): Promise<MatchFeed> {
-  return cachedMatches(game);
+export async function getMatches(game: Game = "lol"): Promise<MatchFeed> {
+  try {
+    return markStaleFeed(await cachedMatches(game));
+  } catch (error) {
+    if (error instanceof MatchFeedUnavailable) return error.fallback();
+    throw error;
+  }
 }

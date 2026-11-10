@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mergeMatchFeed, shouldPollMatchFeed } from "./client-match-feed.ts";
-import type { MatchFeed } from "./matches";
+import type { MatchFeed, Match } from "./matches";
 
 const live: MatchFeed = {
   matches: [], game: "lol", demo: false, source: "PandaScore",
@@ -32,4 +32,13 @@ test("initial demo remains labelled until successful live recovery", () => {
   assert.equal(stillUnavailable.demo, true);
   assert.equal(stillUnavailable.matches, unavailable.matches);
   assert.equal(mergeMatchFeed(stillUnavailable, live), live);
+});
+
+
+test("partial real data can replace an empty/demo screen without discarding a known full schedule", () => {
+  const partial: MatchFeed = { ...live, sourceStatus: "unavailable", matches: [{ id: 42 } as Match] };
+  assert.equal(mergeMatchFeed(unavailable, partial), partial);
+  assert.equal(mergeMatchFeed(live, partial), partial);
+  const previous = { ...live, matches: [{ id: 1 } as Match, { id: 2 } as Match] };
+  assert.equal(mergeMatchFeed(previous, partial).matches, previous.matches);
 });

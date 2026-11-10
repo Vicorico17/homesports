@@ -8,7 +8,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!/^\d+$/.test(id)) return new Response("Invalid team ID.", { status: 400 });
   const game = new URL(request.url).searchParams.get("game") === "valorant" ? "valorant" : "lol";
   const feed = await getMatches(game);
-  if (feed.demo) return new Response("Calendar data is temporarily unavailable.", { status: 503 });
+  if (feed.sourceStatus !== "healthy") return new Response("Calendar data is temporarily unavailable.", { status: 503 });
   const teamMatches = feed.matches.filter(match => match.status !== "finished" && match.opponents.some(team => String(team.id) === id));
   const teamName = teamMatches.flatMap(match => match.opponents).find(team => String(team.id) === id)?.name ?? `Team ${id}`;
   const upcoming: CalendarMatch[] = teamMatches.map(match => ({ id: match.id, begin_at: match.beginAt, name: match.name, league: { name: match.league }, tournament: { name: match.tournament }, opponents: match.opponents.map(team => ({ opponent: { name: team.name } })) }));

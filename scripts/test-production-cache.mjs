@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { cp, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, readdir, rm, symlink, utimes, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -10,10 +10,11 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const workspace = await mkdtemp(path.join(tmpdir(), 'homesports-cache-'));
 const log = path.join(workspace, 'provider.log');
+const modeFile = path.join(workspace, 'provider-mode');
 const environment = {
   ...process.env,
   NEXT_TELEMETRY_DISABLED: '1', PANDASCORE_API_KEY: 'local-test-fixture', ENABLE_ODDS: 'false',
-  NEXT_PUBLIC_ENABLE_ACCOUNTS: 'false', CACHE_TEST_LOG: log,
+  NEXT_PUBLIC_ENABLE_ACCOUNTS: 'false', CACHE_TEST_LOG: log, CACHE_TEST_MODE_FILE: modeFile,
   NODE_OPTIONS: `--import ${path.join(root, 'scripts/fixtures/cache-provider.mjs')}`,
 };
 let server;
@@ -34,6 +35,7 @@ try {
   for (const name of ['src', 'package.json', 'tsconfig.json', 'next-env.d.ts']) await cp(path.join(root, name), path.join(workspace, name), { recursive: true });
   await symlink(path.join(root, 'node_modules'), path.join(workspace, 'node_modules'), 'dir');
   await writeFile(log, '');
+  await writeFile(modeFile, 'healthy');
   // Isolated build: no production credentials, network calls or .next output.
   const build = await command(['build', '--webpack']);
   for (const route of ['/teams/[id]', '/competition/[id]', '/competition/series/[id]', '/bracket/[id]', '/valorant/teams/[id]', '/valorant/competition/[id]', '/valorant/competition/series/[id]', '/valorant/bracket/[id]']) {
@@ -41,15 +43,19 @@ try {
   }
   const socket = createServer(); socket.listen(0, '127.0.0.1'); await once(socket, 'listening');
   const port = socket.address().port; await new Promise(resolve => socket.close(resolve));
-  server = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), 'start', '--port', String(port), '--hostname', '127.0.0.1'], { cwd: workspace, env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
-  serverExit = once(server, 'exit');
-  server.stdout.on('data', data => { output += data; }); server.stderr.on('data', data => { output += data; });
   const base = `http://127.0.0.1:${port}`;
-  for (let attempt = 0; attempt < 100; attempt++) {
-    try { const response = await fetch(`${base}/robots.txt`); if (response.ok) break; } catch {}
-    assert.ok(attempt < 99, `Server did not start: ${output}`);
-    await new Promise(resolve => setTimeout(resolve, 100));
+  async function startServer() {
+    server = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), 'start', '--port', String(port), '--hostname', '127.0.0.1'], { cwd: workspace, env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
+    serverExit = once(server, 'exit');
+    server.stdout.on('data', data => { output += data; }); server.stderr.on('data', data => { output += data; });
+    for (let attempt = 0; attempt < 100; attempt++) {
+      try { const response = await fetch(`${base}/robots.txt`); if (response.ok) return; } catch {}
+      assert.ok(attempt < 99, `Server did not start: ${output}`);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   }
+  async function stopServer() { server.kill('SIGTERM'); await serverExit; }
+  await startServer();
   const lol = await (await fetch(`${base}/api/matches?game=lol`)).json();
   const before = feedCalls(await calls()).length;
   const repeat = await (await fetch(`${base}/api/matches?game=lol`)).json();
@@ -74,7 +80,54 @@ try {
     const response = await fetch(base + route); await response.text(); assert.equal(response.status, 404, route);
   }
   assert.equal((await calls()).length, beforeInvalid, 'Invalid IDs called the provider');
-  console.log('PASS: eight ISR route hits, shared normalized feeds, game separation, Worlds reuse, calendar CDN headers, invalid-ID guards. No external provider requests.');
+  // Simulate an expired Data Cache snapshot and a provider outage without waiting
+  // minutes or touching real services. Restart also clears process-local memory.
+  await stopServer();
+  const cacheDirectory = path.join(workspace, '.next/cache/fetch-cache');
+  const staleDate = new Date(Date.now() - 240_000);
+  let aged = 0;
+  for (const filename of await readdir(cacheDirectory)) {
+    const file = path.join(cacheDirectory, filename);
+    const entry = JSON.parse(await readFile(file, 'utf8'));
+    let feed;
+    try { feed = JSON.parse(entry.data?.body); } catch { continue; }
+    if (feed.game !== 'lol' || feed.demo || !Array.isArray(feed.matches)) continue;
+    entry.data.body = JSON.stringify({ ...feed, updatedAt: staleDate.toISOString() });
+    await writeFile(file, JSON.stringify(entry)); await utimes(file, staleDate, staleDate); aged++;
+  }
+  assert.ok(aged > 0, 'No shared feed cache entry found');
+  await writeFile(modeFile, 'rate-limited'); await startServer();
+  const retained = await (await fetch(`${base}/api/matches?game=lol`)).json();
+  assert.equal(retained.demo, false); assert.deepEqual(retained.matches, lol.matches);
+  assert.equal(retained.sourceStatus, 'unavailable');
+  const unavailableCalendar = await fetch(`${base}/api/calendar/team/10`);
+  assert.equal(unavailableCalendar.status, 503, 'An outage must not erase subscribed events with an empty calendar');
+  await unavailableCalendar.text();
+  await stopServer(); await writeFile(modeFile, 'healthy'); await startServer();
+  let recovered;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    recovered = await (await fetch(`${base}/api/matches?game=lol`)).json();
+    if (recovered.sourceStatus === 'healthy') break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert.equal(recovered.sourceStatus, 'healthy', output);
+  assert.deepEqual(recovered.matches, lol.matches);
+  assert.notEqual(recovered.updatedAt, staleDate.toISOString());
+  await stopServer();
+  for (const filename of await readdir(cacheDirectory)) {
+    const file = path.join(cacheDirectory, filename);
+    const entry = JSON.parse(await readFile(file, 'utf8'));
+    let feed;
+    try { feed = JSON.parse(entry.data?.body); } catch { continue; }
+    if (feed.game === 'lol' && Array.isArray(feed.matches)) await rm(file);
+  }
+  await writeFile(modeFile, 'rate-limited'); await startServer();
+  const coldResponse = await fetch(`${base}/api/matches?game=lol`);
+  assert.equal(coldResponse.status, 200, 'Cold provider outage must not crash the API');
+  const cold = await coldResponse.json();
+  assert.equal(cold.sourceStatus, 'unavailable'); assert.equal(cold.demo, false);
+  assert.deepEqual(cold.matches, [], 'No fabricated matches during an outage');
+  console.log('PASS: eight ISR hits, shared feeds, game separation, Worlds reuse, calendar caching, invalid IDs, expired-cache/429 retention, recovery and cold-outage handling. No external provider requests.');
 } finally {
   if (server && server.exitCode === null) { server.kill('SIGTERM'); await serverExit; }
   await rm(workspace, { recursive: true, force: true });
