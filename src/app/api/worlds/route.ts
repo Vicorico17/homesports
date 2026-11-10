@@ -1,3 +1,5 @@
+export const preferredRegion = "iad1";
+
 import { getWorldsData } from "@/lib/worlds-feed";
 
 export async function GET() {

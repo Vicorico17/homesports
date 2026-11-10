@@ -18,6 +18,9 @@ import "./match-information.css";
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 
+// Keep provider reads in one region; cached pages are still served globally.
+export const preferredRegion = "iad1";
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://homesports.vercel.app"),
   title: { default: "HomeSports — LoL Esports", template: "%s — HomeSports" },

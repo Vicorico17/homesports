@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadMatchPages, normalizeMatchGroups, markStaleFeed, MatchFeedUnavailable, singleFlight } from "./match-feed-loader.ts";
-import type { MatchFeed, PandaMatch } from "./matches.ts";
+import { loadMatchPages, feedFreshUntil, mergeMatchGroups, normalizeMatchGroups, markStaleFeed, MatchFeedUnavailable, singleFlight } from "./match-feed-loader.ts";
+import type { MatchFeed, MatchStatus, PandaMatch } from "./matches.ts";
 
 const match = { id: 1, name: "A vs B", status: "not_started", number_of_games: 3 } satisfies PandaMatch;
 const response = (data: PandaMatch[] | null) => ({ data, status: data ? 200 : 429, sourceDate: "2026-11-10T12:00:00Z" });
@@ -64,4 +64,43 @@ test("malformed records and normalization errors retain valid results as a degra
   ], value => { if (value.id === 2) throw Error("Malformed nested data"); return value.id; });
   assert.equal(result.complete, false);
   assert.deepEqual(result.groups[0].matches, [1]);
+});
+
+test("provider budget keeps running/latest results fast and slows schedules/older history", async () => {
+  const calls: Array<{ path: string; ttl: number }> = [];
+  await loadMatchPages("lol", async (path, ttl) => {
+    calls.push({ path, ttl });
+    return response(!path.includes('/running?') && path.endsWith('page=1') ? Array(100).fill(match) : []);
+  });
+  assert.deepEqual(calls.map(call => call.ttl), [60, 300, 60, 300, 600]);
+  assert.equal(calls.reduce((total, call) => total + 3600 / call.ttl, 0) * 2, 300);
+});
+
+test("mixed page ages stay healthy only within each page's own freshness budget", () => {
+  const now = Date.parse('2026-11-10T12:00:00Z');
+  const groups = [
+    { matches: [], status: 'running' as const, sourceDate: new Date(now - 30_000).toISOString(), revalidate: 60 },
+    { matches: [match], status: 'upcoming' as const, sourceDate: new Date(now - 240_000).toISOString(), revalidate: 300 },
+    { matches: [match], status: 'finished' as const, sourceDate: new Date(now - 540_000).toISOString(), revalidate: 600 },
+  ];
+  const freshUntil = feedFreshUntil(groups, now);
+  assert.equal(Date.parse(freshUntil), now + 150_000);
+  const feed: MatchFeed = { game: 'lol', matches: [], demo: false, source: 'PandaScore', sourceStatus: 'healthy', updatedAt: groups[2].sourceDate, freshUntil };
+  assert.equal(markStaleFeed(feed, now), feed);
+  assert.equal(markStaleFeed(feed, now + 150_001).sourceStatus, 'unavailable');
+  groups[0].sourceDate = new Date(now - 181_000).toISOString();
+  assert.ok(Date.parse(feedFreshUntil(groups, now)) < now, 'Empty running page must still age out');
+  const unknownDate = [{ ...groups[0], sourceDate: null }];
+  assert.equal(Date.parse(feedFreshUntil(unknownDate, now)), now);
+});
+
+test("newer live/finished records replace old schedule records without duplicate IDs", () => {
+  const old = '2026-11-10T11:55:00Z', latest = '2026-11-10T12:00:00Z';
+  const groups: Array<{ sourceDate: string; matches: Array<{ id: number; status: MatchStatus }> }> = [
+    { sourceDate: latest, matches: [{ id: 1, status: 'running' as const }, { id: 2, status: 'running' as const }] },
+    { sourceDate: old, matches: [{ id: 1, status: 'upcoming' as const }, { id: 3, status: 'upcoming' as const }] },
+    { sourceDate: latest, matches: [{ id: 2, status: 'finished' as const }] },
+  ];
+  assert.deepEqual(mergeMatchGroups(groups), [{ id: 1, status: 'running' }, { id: 2, status: 'finished' }, { id: 3, status: 'upcoming' }]);
+  assert.equal(mergeMatchGroups([...groups].reverse()).find(item => item.id === 2)?.status, 'finished');
 });

@@ -1,3 +1,5 @@
+export const preferredRegion = "iad1";
+
 import { getMatches } from "@/lib/matches";
 import { agentMatchesResponse } from "@/lib/agent-access";
 

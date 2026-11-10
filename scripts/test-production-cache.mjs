@@ -131,7 +131,7 @@ try {
     let feed;
     try { feed = JSON.parse(entry.data?.body); } catch { continue; }
     if (feed.game !== 'lol' || feed.demo || !Array.isArray(feed.matches)) continue;
-    entry.data.body = JSON.stringify({ ...feed, updatedAt: staleDate.toISOString() });
+    entry.data.body = JSON.stringify({ ...feed, updatedAt: staleDate.toISOString(), freshUntil: staleDate.toISOString() });
     await writeFile(file, JSON.stringify(entry)); await utimes(file, staleDate, staleDate); aged++;
   }
   assert.ok(aged > 0, 'No shared feed cache entry found');

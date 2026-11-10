@@ -2,17 +2,20 @@ import type { Game } from "./game.ts";
 import type { MatchFeed, MatchStatus, PandaMatch } from "./matches.ts";
 
 type PageResult = { data: PandaMatch[] | null; sourceDate: string | null; status: number };
-type PageRequest = (path: string) => Promise<PageResult>;
-export type MatchGroup = { matches: PandaMatch[]; status: MatchStatus; sourceDate: string | null };
+type PageRequest = (path: string, revalidate: number) => Promise<PageResult>;
+export type MatchGroup = { matches: PandaMatch[]; status: MatchStatus; sourceDate: string | null; revalidate?: number };
 
 /** Fetch second pages only when the first is full; one failed page must not discard other results. */
 export async function loadMatchPages(game: Game, request: PageRequest) {
   let complete = true;
   async function page(path: string, status: MatchStatus, number: number): Promise<MatchGroup> {
     const sort = path === "past" ? "-begin_at" : "begin_at";
-    const result = await request(`${game}/matches/${path}?sort=${sort}&per_page=100&page=${number}`);
+    // Keep live scores and newly completed results fresh; older history and
+    // advance schedules do not need an identical once-per-minute budget.
+    const revalidate = path === "upcoming" ? 300 : path === "past" && number > 1 ? 600 : 60;
+    const result = await request(`${game}/matches/${path}?sort=${sort}&per_page=100&page=${number}`, revalidate);
     if (!Array.isArray(result.data)) complete = false;
-    return { matches: Array.isArray(result.data) ? result.data : [], status, sourceDate: result.sourceDate };
+    return { matches: Array.isArray(result.data) ? result.data : [], status, sourceDate: result.sourceDate, revalidate };
   }
   const [running, upcoming, past] = await Promise.all([
     page("running", "running", 1), page("upcoming", "upcoming", 1), page("past", "finished", 1),
@@ -53,8 +56,9 @@ export class MatchFeedUnavailable extends Error {
 }
 
 export function markStaleFeed(feed: MatchFeed, now = Date.now()): MatchFeed {
-  const timestamp = Date.parse(feed.updatedAt);
-  return !feed.demo && (!Number.isFinite(timestamp) || now - timestamp > 180_000)
+  // Legacy snapshots retain their conservative three-minute deadline.
+  const deadline = feed.freshUntil ? Date.parse(feed.freshUntil) : Date.parse(feed.updatedAt) + 180_000;
+  return !feed.demo && (!Number.isFinite(deadline) || now > deadline)
     ? { ...feed, sourceStatus: "unavailable" }
     : feed;
 }
@@ -69,4 +73,30 @@ export function singleFlight<Key, Value>(loader: (key: Key) => Promise<Value>) {
     pending.set(key, promise);
     return promise;
   };
+}
+
+/** Empty pages are freshness evidence too, especially an empty running feed. */
+export function feedFreshUntil(groups: MatchGroup[], now = Date.now()): string {
+  const deadlines = groups.map(group => {
+    const timestamp = group.sourceDate ? Date.parse(group.sourceDate) : NaN;
+    return Number.isFinite(timestamp) ? timestamp + ((group.revalidate ?? 60) + 120) * 1000 : now;
+  });
+  return new Date(deadlines.length ? Math.min(...deadlines) : now).toISOString();
+}
+
+/** Slow schedule pages can overlap newer live/results pages during transitions. */
+export function mergeMatchGroups<T extends { id: number; status: MatchStatus }>(groups: Array<{ matches: T[]; sourceDate: string | null }>): T[] {
+  const selected = new Map<number, { match: T; timestamp: number }>();
+  const rank = { upcoming: 0, running: 1, finished: 2 };
+  for (const group of groups) {
+    const parsed = group.sourceDate ? Date.parse(group.sourceDate) : NaN;
+    const timestamp = Number.isFinite(parsed) ? parsed : -Infinity;
+    for (const match of group.matches) {
+      const previous = selected.get(match.id);
+      if (!previous || timestamp > previous.timestamp || (timestamp === previous.timestamp && rank[match.status] > rank[previous.match.status])) {
+        selected.set(match.id, { match, timestamp });
+      }
+    }
+  }
+  return [...selected.values()].map(item => item.match);
 }

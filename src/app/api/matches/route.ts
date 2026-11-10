@@ -1,3 +1,5 @@
+export const preferredRegion = "iad1";
+
 import { getMatches } from "@/lib/matches";
 
 export async function GET(request: Request) {
