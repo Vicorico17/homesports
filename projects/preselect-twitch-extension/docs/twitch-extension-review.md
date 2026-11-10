@@ -3,7 +3,7 @@
 ## Build the CDN asset bundle
 
 ```bash
-npm run extension:package
+PICK_PREDICT_EBS_ORIGIN=https://YOUR_REVIEWED_BACKEND npm run extension:package
 ```
 
 Upload `dist/pick-predict-twitch-extension.zip` on the **Files** tab of the Twitch Extensions Manager.
@@ -14,6 +14,7 @@ Upload `dist/pick-predict-twitch-extension.zip` on the **Files** tab of the Twit
 - Viewer Path: `panel.html`
 - Video - Fullscreen View Path: `video.html`
 - Config Path: `config.html`
+- Live Config Path: `config.html`
 - Panel Height: `496`
 
 ## Capabilities
@@ -21,7 +22,7 @@ Upload `dist/pick-predict-twitch-extension.zip` on the **Files** tab of the Twit
 - Request Identity Link: `No` (stable opaque Twitch identities are sufficient)
 - Chat Capabilities: `No`
 - Configuration: Extension Configuration Service is not required; configuration is stored in the Pick Predict backend.
-- URL Fetching Allowlist: the production EBS hostname, currently `https://twitchleagueplugin.vercel.app`
+- URL Fetching Allowlist: the exact reviewed EBS origin used when packaging.
 
 ## Backend environment
 
@@ -29,9 +30,11 @@ Add the base64 secret from the Extension Manager to the EBS:
 
 ```text
 TWITCH_EXTENSION_SECRET=<base64 Extension secret>
+TWITCH_EXTENSION_CLIENT_ID=<Extension client ID>
+PICK_PREDICT_PUBLIC_ORIGIN=https://YOUR_REVIEWED_BACKEND
 ```
 
-The CDN bundle uses `https://twitchleagueplugin.vercel.app` as its hosted EBS. Promote the reviewed backend build to that production domain before Hosted Test.
+The ZIP embeds `PICK_PREDICT_EBS_ORIGIN` supplied at packaging time. It does not deploy the backend. This implementation rejects serverless production until shared transactional storage exists. Read [production readiness](production-readiness.md) before deciding the hosting route. Do not deploy or upload just to bypass that guard.
 
 ## Reviewer walkthrough
 
@@ -53,4 +56,4 @@ The Extensions Manager requires a logo, taskbar icon, discovery image, screensho
 - Terms: `https://twitchleagueplugin.vercel.app/terms.html`
 - Privacy: `https://twitchleagueplugin.vercel.app/privacy.html`
 
-Do not submit until Twitch OAuth/Extension secrets are configured and the production backend uses durable shared storage.
+Replace those example listing links with the reviewed backend's real terms/privacy URLs. Do not submit until authentication, durable hosting, real-client tests, policy review and listing assets are complete. The standalone OAuth application is optional when producers and viewers use only Twitch's signed Extension sessions.

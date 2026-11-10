@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { identity, MAX_VIEWERS, validateSnapshot } from "./snapshot-validation.js";
 
 export const CHAMPIONS = [
   "Aatrox", "Ahri", "Akali", "Akshan", "Alistar", "Ambessa", "Amumu", "Anivia", "Annie", "Aphelios",
@@ -39,6 +40,7 @@ export class DraftEngine {
     this.viewers = new Map();
     this.predictions = new Map();
     this.setup();
+    this.controlRevision = 0;
   }
 
   setup() {
@@ -51,17 +53,20 @@ export class DraftEngine {
   }
 
   createMatch({ seriesName, blueTeam, redTeam, bestOf = 3, roundSeconds, revealDelaySeconds, template = "standard" }) {
-    if (!blueTeam?.trim() || !redTeam?.trim()) throw new Error("Both team names are required.");
+    if (typeof blueTeam !== "string" || typeof redTeam !== "string" || !blueTeam.trim() || !redTeam.trim() || blueTeam.length > 80 || redTeam.length > 80) throw new Error("Both team names are required (maximum 80 characters).");
+    if (seriesName !== undefined && (typeof seriesName !== "string" || seriesName.length > 120)) throw new Error("Series name must contain at most 120 characters.");
+    if (![1, 3, 5, 7].includes(Number(bestOf))) throw new Error("Best of must be 1, 3, 5, or 7.");
+    if (!["standard", "rapid", "analysis", "international"].includes(template)) throw new Error("Unknown match template.");
+    const settings = this.validSettings({ roundSeconds, revealDelaySeconds });
     this.match = {
       id: randomUUID(),
       seriesName: seriesName?.trim() || "Live series",
       blueTeam: blueTeam.trim(),
       redTeam: redTeam.trim(),
-      bestOf: Math.max(1, Math.min(7, Number(bestOf) || 3)),
+      bestOf: Number(bestOf),
       template
     };
-    if (roundSeconds) this.roundSeconds = Math.max(5, Math.min(90, Number(roundSeconds)));
-    if (revealDelaySeconds !== undefined) this.revealDelaySeconds = Math.max(0, Math.min(60, Number(revealDelaySeconds) || 0));
+    Object.assign(this, settings);
     this.game = 1;
     this.status = "ready";
     this.currentIndex = 0;
@@ -73,9 +78,18 @@ export class DraftEngine {
   }
 
   configure({ roundSeconds, revealDelaySeconds }) {
-    if (roundSeconds !== undefined) this.roundSeconds = Math.max(5, Math.min(90, Number(roundSeconds) || 20));
-    if (revealDelaySeconds !== undefined) this.revealDelaySeconds = Math.max(0, Math.min(60, Number(revealDelaySeconds) || 0));
+    Object.assign(this, this.validSettings({ roundSeconds, revealDelaySeconds }));
     return { roundSeconds: this.roundSeconds, revealDelaySeconds: this.revealDelaySeconds };
+  }
+
+  validSettings({ roundSeconds, revealDelaySeconds }) {
+    const settings = {};
+    for (const [key, value, min, max] of [["roundSeconds", roundSeconds, 5, 90], ["revealDelaySeconds", revealDelaySeconds, 0, 60]]) {
+      if (value === undefined) continue;
+      if (!Number.isSafeInteger(Number(value)) || Number(value) < min || Number(value) > max || value === "" || value === null) throw new Error(`${key} must be an integer from ${min} to ${max}.`);
+      settings[key] = Number(value);
+    }
+    return settings;
   }
 
   clearSeries() {
@@ -85,6 +99,9 @@ export class DraftEngine {
   }
 
   join(id, name) {
+    if (!identity(id)) throw new Error("Invalid viewer identity.");
+    if (!this.viewers.has(id) && this.viewers.size >= MAX_VIEWERS) throw new Error("This channel has reached the supported viewer limit.");
+    if (name !== undefined && typeof name !== "string") throw new Error("Display name must be text.");
     const cleanName = String(name || "Analyst").trim().slice(0, 24) || "Analyst";
     const existing = this.viewers.get(id);
     if (existing) existing.name = cleanName;
@@ -104,6 +121,7 @@ export class DraftEngine {
 
   newGame() {
     if (!this.match) throw new Error("Create a match first.");
+    if (this.game >= 1000) throw new Error("Start a new series before adding another game.");
     this.game += 1;
     this.status = "ready";
     this.currentIndex = 0;
@@ -201,10 +219,13 @@ export class DraftEngine {
     }
     this.currentIndex = last.index;
     this.status = "live";
+    const retained = new Set(this.actions.map(action => action.id));
+    this.predictions = new Map([...this.predictions].filter(([id]) => retained.has(id)));
     this.openRound();
   }
 
   resetGame() {
+    if (!this.match) throw new Error("Create a match first.");
     for (const viewer of this.viewers.values()) {
       viewer.seriesScore = Math.max(0, viewer.seriesScore - viewer.gameScore);
       viewer.gameScore = 0;
@@ -233,14 +254,14 @@ export class DraftEngine {
     return {
       version: 2, savedAt: this.now(), match: this.match, game: this.game, status: this.status,
       currentIndex: this.currentIndex, round: this.round, actions: this.actions,
-      roundSeconds: this.roundSeconds, revealDelaySeconds: this.revealDelaySeconds,
+      roundSeconds: this.roundSeconds, revealDelaySeconds: this.revealDelaySeconds, controlRevision: this.controlRevision,
       viewers: [...this.viewers.entries()],
       predictions: [...this.predictions.entries()].map(([roundId, votes]) => [roundId, [...votes.entries()]])
     };
   }
 
   restore(snapshot) {
-    if (!snapshot || ![1, 2].includes(snapshot.version) || !Array.isArray(snapshot.viewers)) throw new Error("Invalid recovery snapshot.");
+    snapshot = validateSnapshot(snapshot, CHAMPIONS, DRAFT_SEQUENCE);
     this.match = snapshot.match || null;
     this.game = Number(snapshot.game) || 1;
     this.status = snapshot.status || "setup";
@@ -249,6 +270,7 @@ export class DraftEngine {
     this.actions = Array.isArray(snapshot.actions) ? snapshot.actions : [];
     this.roundSeconds = Number(snapshot.roundSeconds) || 20;
     this.revealDelaySeconds = Number(snapshot.revealDelaySeconds) || 0;
+    this.controlRevision = snapshot.controlRevision ?? 0;
     this.viewers = new Map(snapshot.viewers);
     this.predictions = new Map((snapshot.predictions || []).map(([roundId, votes]) => [roundId, new Map(votes)]));
     return this.publicState(null, { producer: true });
@@ -282,6 +304,7 @@ export class DraftEngine {
     return {
       match: this.match,
       game: this.game,
+      controlRevision: this.controlRevision,
       status: this.status,
       roundSeconds: this.roundSeconds,
       revealDelaySeconds: this.revealDelaySeconds,
@@ -291,7 +314,8 @@ export class DraftEngine {
       me: viewerId ? leaderboard.find(viewer => viewer.isMe) || null : null,
       actions,
       lastAction,
-      leaderboard,
+      leaderboard: leaderboard.slice(0, 100),
+      viewerCount: leaderboard.length,
       champions: CHAMPIONS
     };
   }

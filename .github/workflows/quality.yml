@@ -21,6 +21,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npm --prefix projects/preselect-twitch-extension test
       - run: npm run build
       - run: npm run test:cache
       - run: node scripts/test-match-ui.mjs
