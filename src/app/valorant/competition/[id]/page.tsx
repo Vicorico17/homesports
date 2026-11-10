@@ -1,3 +1,4 @@
+import { mergeCompetitionMatches } from "@/lib/competition-schedule";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ValorantCompetition, type ValorantStanding } from "@/components/valorant-competition";
@@ -36,7 +37,10 @@ export default async function ValorantTournamentPage({ params }: { params: Promi
   const tournament = tournamentData?.videogame?.slug === "valorant" || !tournamentData?.videogame?.slug ? tournamentData : null;
   if (!tournament && !local.length) notFound();
   const source = local[0];
-  const matches = matchesData?.filter(match => match.videogame?.slug === "valorant" || !match.videogame?.slug).map(match => normalizeMatch(match, match.status === "running" ? "running" : match.status === "finished" ? "finished" : "upcoming", "valorant")) ?? local;
+  const matches = mergeCompetitionMatches(
+    local.filter(match => !(matchesData ?? []).some(detail => detail.id === match.id && !["running", "not_started", "finished"].includes(detail.status))),
+    (matchesData ?? []).filter(match => ["running", "not_started", "finished"].includes(match.status) && (match.videogame?.slug === "valorant" || !match.videogame?.slug)).map(match => normalizeMatch(match, match.status === "running" ? "running" : match.status === "finished" ? "finished" : "upcoming", "valorant")),
+  );
   const derived = deriveStandings(matchesData ?? []);
   const rows: ValorantStanding[] = standingsData?.length ? standingsData.map((row, index) => ({ rank: row.rank ?? index + 1, team: row.team ?? {}, wins: numericStat(row.wins), losses: numericStat(row.losses), points: numericStat(row.points ?? row.score) })) : derived.map((row, index) => ({ rank: index + 1, team: row.team, wins: row.wins, losses: row.losses }));
   return <ValorantCompetition title={tournament?.name ?? source?.tournament ?? "Valorant tournament"} league={tournament?.league?.name ?? source?.league ?? "Valorant"} logo={tournament?.image_url ?? source?.tournamentImageUrl} standings={rows} matches={matches} bracket={Array.isArray(bracketData) ? bracketData : []} kind="tournament" />;

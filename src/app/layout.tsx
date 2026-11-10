@@ -14,6 +14,7 @@ import "./login/login.css";
 import "./worlds.css";
 import "./play.css";
 import "./match-preview.css";
+import "./match-information.css";
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -31,5 +32,5 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { colorScheme: "dark", themeColor: "#101110" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}<Analytics /><footer className="legal-footer">HomeSports is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc. <span><a href="/privacy">Privacy</a><a href="https://github.com/Vicorico17/homesports/issues">Support</a></span></footer></body></html>;
+  return <html lang="en"><body>{children}<Analytics /><footer className="legal-footer">HomeSports is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc. <span><a href="/privacy">Privacy</a><a href="/agents">For agents</a><a href="https://github.com/Vicorico17/homesports/issues">Support</a></span></footer></body></html>;
 }

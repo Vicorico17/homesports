@@ -1,3 +1,4 @@
+import { mergeCompetitionMatches } from "@/lib/competition-schedule";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ValorantCompetition, type ValorantStanding } from "@/components/valorant-competition";
@@ -35,8 +36,11 @@ export default async function ValorantSeriesPage({ params }: { params: Promise<{
   const serie = serieData?.videogame?.slug === "valorant" || !serieData?.videogame?.slug ? serieData : null;
   if (!serie && !local.length) notFound();
   const source = local[0];
-  const raw = (matchesData ?? []).filter(match => match.videogame?.slug === "valorant" || !match.videogame?.slug);
-  const matches = raw.length ? raw.map(match => normalizeMatch(match, match.status === "running" ? "running" : match.status === "finished" ? "finished" : "upcoming", "valorant")) : local;
+  const raw = (matchesData ?? []).filter(match => ["running", "not_started", "finished"].includes(match.status) && (match.videogame?.slug === "valorant" || !match.videogame?.slug));
+  const matches = mergeCompetitionMatches(
+    local.filter(match => !(matchesData ?? []).some(detail => detail.id === match.id && !["running", "not_started", "finished"].includes(detail.status))),
+    raw.map(match => normalizeMatch(match, match.status === "running" ? "running" : match.status === "finished" ? "finished" : "upcoming", "valorant")),
+  );
   const tournament = (tournamentsData ?? []).find(item => item.has_bracket && /playoff|knockout|final/i.test(item.name ?? "")) ?? (tournamentsData ?? []).find(item => item.has_bracket);
   const bracket = tournament ? await panda<BracketMatch[]>(`tournaments/${tournament.id}/brackets`, 60) : null;
   const standingMatches = raw.length ? raw : local.map(match => ({ id: match.id, status: match.status, tournament: { name: match.tournament }, opponents: match.opponents.map(team => ({ opponent: { id: team.id, name: team.name, image_url: team.imageUrl } })), results: match.opponents.map(team => ({ team_id: team.id, score: team.score })) }));

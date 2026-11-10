@@ -1,22 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { LiveBadge } from "@/components/live-badge";
 import { MatchStreamLinks } from "@/components/match-stream-links";
 import { useState, useSyncExternalStore } from "react";
 import { WorldsTeam } from "@/components/worlds-team";
 import { gamePath, gameName, type Game } from "@/lib/game";
 import type { Match } from "@/lib/matches";
 import { MatchRosters } from "@/components/match-rosters";
-import type { RosterPlayer } from "@/lib/roster";
+import type { RosterSnapshot } from "@/lib/roster-integrity";
 import type { TeamForm } from "@/lib/match-preview";
 
 const subscribe = () => () => {};
-export function MatchPreview({ match, game, forms, chances, sourceStatus, rosters }: { match: Match; game: Game; forms: TeamForm[]; chances: [number, number] | null; sourceStatus: string; rosters: RosterPlayer[][] }) {
+export function MatchPreview({ match, game, forms, chances, sourceStatus, rosters }: { match: Match; game: Game; forms: TeamForm[]; chances: [number, number] | null; sourceStatus: string; rosters: RosterSnapshot[] }) {
   const [showScores, setShowScores] = useState(false);
   const local = useSyncExternalStore(subscribe, () => true, () => false);
   const time = Number.isFinite(Date.parse(match.beginAt)) ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", ...(local ? {} : { timeZone: "UTC" }) }).format(new Date(match.beginAt)) : "Time to be announced";
   const prefix = gamePath(game);
-  return <main className="match-preview-page"><Link className="match-preview-back" href={prefix || "/"}>← Back to matches</Link><p className="eyebrow">{gameName(game).toUpperCase()} · {match.league}</p><h1>Match preview</h1><div className="match-preview-meta"><span>{sourceStatus === "running" ? "● LIVE" : sourceStatus === "finished" ? "FINISHED" : sourceStatus === "not_started" ? "UPCOMING" : sourceStatus.toUpperCase()}</span><time dateTime={match.beginAt || undefined}>{time}{time !== "Time to be announced" ? local ? " · Your local time" : " UTC" : ""}</time><span>Best of {match.bestOf}</span></div>
+  return <main className="match-preview-page"><Link className="match-preview-back" href={prefix || "/"}>← Back to matches</Link><p className="eyebrow">{gameName(game).toUpperCase()} · {match.league}</p><h1>Match preview</h1><div className="match-preview-meta"><span>{sourceStatus === "running" ? <LiveBadge /> : sourceStatus === "finished" ? "FINISHED" : sourceStatus === "not_started" ? "UPCOMING" : sourceStatus.toUpperCase()}</span><time dateTime={match.beginAt || undefined}>{time}{time !== "Time to be announced" ? local ? " · Your local time" : " UTC" : ""}</time><span>Best of {match.bestOf}</span></div>
     <section className="match-preview-versus" aria-label="Teams">{[0, 1].map(index => <div key={index}><WorldsTeam game={game} team={match.opponents[index] ?? { name: "Team to be announced" }} />{chances && <strong className="match-preview-chance">{chances[index]}<small>%</small></strong>}{showScores && ["running", "finished"].includes(sourceStatus) && <span className="match-preview-score">Series score: {match.opponents[index]?.score ?? "—"}</span>}</div>)}</section>
     {["running", "finished"].includes(sourceStatus) && <button className="match-preview-score-toggle" aria-pressed={showScores} onClick={() => setShowScores(value => !value)}>{showScores ? "Hide series scores" : "Show series scores"}</button>}
     <MatchRosters teams={match.opponents} rosters={rosters} game={game} />

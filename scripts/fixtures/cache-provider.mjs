@@ -11,9 +11,9 @@ globalThis.fetch = async function fixtureFetch(input, init) {
     return new Response(null, { status: 429, headers: { 'retry-after': '60' } });
   }
 
-  const game = url.pathname.startsWith('/valorant') || /\/(?:teams|tournaments|series)\/1[123]0(?:\/|$)/.test(url.pathname) ? 'valorant' : 'lol';
+  const game = url.pathname.startsWith('/valorant') || /\/(?:teams|tournaments|series)\/1[123]0(?:\/|$)/.test(url.pathname) || url.pathname === '/matches/1100' ? 'valorant' : 'lol';
   const offset = game === 'valorant' ? 100 : 0;
-  const team = id => ({ id, name: `Fixture ${id}`, videogame: { slug: game }, players: [] });
+  const team = id => ({ id, name: `Fixture ${id}`, current_videogame: { slug: game === 'lol' ? 'league-of-legends' : game }, players: [{ id: id * 10, name: `Current member ${id}`, active: true }] });
   const match = {
     id: offset + 1000, name: 'Fixture A vs Fixture B', status: 'not_started',
     begin_at: '2026-11-15T12:00:00Z', number_of_games: 3, videogame: { slug: game },
@@ -25,6 +25,8 @@ globalThis.fetch = async function fixtureFetch(input, init) {
   let body = [];
   if (url.hostname === 'lol.fandom.com') body = { cargoquery: [] };
   else if (/^\/(lol|valorant)\/matches\//.test(url.pathname)) body = url.pathname.endsWith('/upcoming') && url.searchParams.get('page') === '1' ? [match] : [];
+  else if (url.pathname === `/matches/${offset + 1000}`) body = match;
+  else if (url.pathname === `/tournaments/${offset + 20}/rosters`) body = { type: 'Team', rosters: [offset + 10, offset + 11].map(id => ({ ...team(id), players: [{ id: id * 100, name: `Tournament member ${id}`, active: false }] })) };
   else if (/^\/teams\/\d+$/.test(url.pathname)) body = team(Number(url.pathname.split('/').pop()));
   else if (/^\/tournaments\/\d+$/.test(url.pathname)) body = { ...match.tournament, videogame: { slug: game }, league: match.league };
   else if (/^\/series\/\d+$/.test(url.pathname)) body = { ...match.serie, videogame: { slug: game }, league: match.league };

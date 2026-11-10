@@ -61,6 +61,32 @@ try {
   const repeat = await (await fetch(`${base}/api/matches?game=lol`)).json();
   assert.equal(lol.demo, false); assert.deepEqual(lol, repeat);
   assert.equal(feedCalls(await calls()).length, before, 'Repeated API request refetched/normalized feed');
+  const agentResponse = await fetch(`${base}/api/agent/matches?game=lol&limit=1`);
+  const agent = await agentResponse.json();
+  assert.equal(agentResponse.status, 200);
+  assert.equal(agent.schemaVersion, '1.0');
+  assert.equal(agent.source.demo, false);
+  assert.equal(agent.source.updatedAt, lol.updatedAt);
+  assert.equal(agent.resultsIncluded, false);
+  assert.equal(agent.matches[0].id, lol.matches[0].id);
+  assert.equal('score' in agent.matches[0].opponents[0], false);
+  assert.equal(feedCalls(await calls()).length, before, 'Agent API refetched shared feed');
+  assert.equal((await fetch(`${base}/api/agent/matches?limit=51`)).status, 400);
+  assert.equal((await fetch(`${base}/api/agent/matches?game=bad`)).status, 400);
+  assert.equal(feedCalls(await calls()).length, before, 'Invalid agent request reached provider');
+  const spec = await (await fetch(`${base}/api/agent/openapi`)).json();
+  assert.equal(spec.openapi, '3.1.0');
+  assert.equal(spec.paths['/api/agent/matches'].get.operationId, 'listMatches');
+  const discovery = await fetch(`${base}/llms.txt`);
+  assert.match(discovery.headers.get('content-type'), /text\/plain/);
+  assert.match(await discovery.text(), /agents\/index.md/);
+  const guide = await fetch(`${base}/agents/index.md`);
+  assert.match(guide.headers.get('content-type'), /text\/markdown/);
+  assert.match(await guide.text(), /not yet available at \/mcp/);
+  const agentPage = await fetch(`${base}/agents`);
+  assert.equal(agentPage.status, 200);
+  assert.match(await agentPage.text(), /A clear view of the matchboard/);
+  assert.match(await (await fetch(`${base}/robots.txt`)).text(), /Allow: \/api\/agent\//);
   const valorant = await (await fetch(`${base}/api/matches?game=valorant`)).json();
   assert.equal(valorant.game, 'valorant'); assert.notEqual(valorant.matches[0].id, lol.matches[0].id);
   const beforeWorlds = feedCalls(await calls()).length;
@@ -74,6 +100,19 @@ try {
     const hit = await fetch(base + route); assert.equal(hit.status, 200, route);
     assert.equal(hit.headers.get('x-nextjs-cache'), 'HIT', `No ISR hit for ${route}`);
     assert.match(hit.headers.get('cache-control'), /s-maxage=60(?:,|$)/, `Unexpected freshness for ${route}`); assert.equal(await hit.text(), body, route);
+  }
+  // Match squads must come from the tournament response, never the current team profile.
+  for (const [route, teamId] of [['/match/1000?game=lol', 10], ['/match/1100?game=valorant', 110]]) {
+    const response = await fetch(base + route); const body = await response.text();
+    assert.equal(response.status, 200, route);
+    assert.ok(body.includes(`Tournament member ${teamId}`), `Missing tournament squad: ${route}`);
+    assert.ok(!body.includes(`Current member ${teamId}`), `Current membership leaked into tournament: ${route}`);
+  }
+  for (const route of ['/teams/110', '/valorant/teams/10']) {
+    const response = await fetch(base + route); const body = await response.text();
+    // Next can stream the notFound boundary after a 200 header; verify its noindex boundary too.
+    assert.ok(response.status === 404 || body.includes('NEXT_HTTP_ERROR_FALLBACK;404'), `Cross-game team accepted: ${route}`);
+    assert.ok(!body.includes('roster-player'), `Wrong-game roster rendered: ${route}`);
   }
   const beforeInvalid = (await calls()).length;
   for (const route of ['/competition/invalid', '/competition/series/invalid', '/bracket/invalid']) {

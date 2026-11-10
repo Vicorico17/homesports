@@ -6,6 +6,7 @@ import { canonicalRole } from "@/lib/data-quality";
 import type { Game } from "@/lib/game";
 import type { Match } from "@/lib/matches";
 import type { RosterPlayer } from "@/lib/roster";
+import type { RosterSnapshot } from "@/lib/roster-integrity";
 
 const roles = {
   top: { label: "Top", icon: "top", order: 0 },
@@ -30,20 +31,23 @@ function Player({ player, game }: { player: RosterPlayer; game: Game }) {
   </li>;
 }
 
-export function MatchRosters({ teams, rosters, game }: { teams: Match["opponents"]; rosters: RosterPlayer[][]; game: Game }) {
+export function MatchRosters({ teams, rosters, game }: { teams: Match["opponents"]; rosters: RosterSnapshot[]; game: Game }) {
   return <section className="match-rosters" aria-labelledby="match-rosters-title">
     <h2 id="match-rosters-title">Team rosters</h2>
-    <p>Current rosters from PandaScore. Match starters and historical lineups may differ.</p>
+    <p>Tournament squads published by PandaScore, not confirmed match starters. Current team rosters are never substituted for missing tournament data.</p>
     <div className="match-rosters-grid">{[0, 1].map(index => {
       const team = teams[index];
-      const players = [...(rosters[index] ?? [])].sort((a, b) => {
+      const roster = rosters[index];
+      const players = [...(roster?.players ?? [])].sort((a, b) => {
         const subOrder = Number(Boolean(isSub(a))) - Number(Boolean(isSub(b)));
         const aRole = playerRole(a), bRole = playerRole(b);
         return subOrder || (game === "lol" ? (aRole ? roles[aRole].order : 99) - (bRole ? roles[bRole].order : 99) : 0);
       });
       return <div className="match-roster-team" key={index}>
         <h3><WorldsTeam team={team ?? { name: "Team to be announced" }} game={game} /></h3>
-        {players.length ? <ul>{players.map(player => <Player key={player.id} player={player} game={game} />)}</ul> : <p>{team?.id == null ? "Players will appear once the team is confirmed." : "Roster currently unavailable."}</p>}
+        {players.length ? <ul>{players.map(player => <Player key={player.id} player={player} game={game} />)}</ul> : <p>{team?.id == null ? "Players will appear once the team is confirmed." : "The provider has not supplied a usable roster for this team and tournament."}</p>}
+        {roster?.omitted ? <p>Some entries were omitted because their identity or team membership could not be resolved.</p> : null}
+        {roster?.sourceDate && <small>Provider response: {new Date(roster.sourceDate).toISOString().slice(0, 16).replace("T", " ")} UTC. This is not a lineup confirmation time.</small>}
       </div>;
     })}</div>
   </section>;

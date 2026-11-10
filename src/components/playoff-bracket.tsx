@@ -1,3 +1,4 @@
+import { LiveBadge } from "@/components/live-badge";
 import { MatchPreviewLink } from "@/components/match-preview-link";
 import { layoutBracket, roundLabel, scoreFor, type BracketMatch } from "@/lib/bracket";
 
@@ -9,7 +10,7 @@ export function PlayoffBracket({ matches, hideScores = false, matchPreviews = fa
     const scores = [scoreFor(match, 0), scoreFor(match, 1)];
     const date = new Date(match.scheduled_at ?? match.begin_at ?? "");
     const time = Number.isFinite(date.getTime()) ? `${date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "UTC" })} · ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}` : "Date TBD";
-    return <article className={`bracket-match${matchPreviews ? " match-preview-card bracket-with-preview" : ""}${match.status === "running" ? " is-live" : ""}`} key={match.id} style={{ left: position.x, top: position.y - 50 }} aria-label={match.name}><div className="bracket-meta"><span title={roundLabel(match)}>{labels.get(match.id)} · {roundLabel(match)}</span><span>{match.status === "running" ? "● LIVE" : match.status === "finished" ? "Finished" : match.status === "canceled" ? "Canceled" : time}</span></div>{[0, 1].map(index => {
+    return <article className={`bracket-match${matchPreviews ? " match-preview-card bracket-with-preview" : ""}${match.status === "running" ? " is-live" : ""}`} key={match.id} style={{ left: position.x, top: position.y - 50 }} aria-label={match.name}><div className="bracket-meta"><span title={roundLabel(match)}>{labels.get(match.id)} · {roundLabel(match)}</span><span>{match.status === "running" ? <LiveBadge /> : match.status === "finished" ? "Finished" : match.status === "canceled" ? "Canceled" : time}</span></div>{[0, 1].map(index => {
       const team = match.opponents?.[index]?.opponent;
       const ref = match.previous_matches?.[index];
       const name = team?.name || (ref?.match_id ? `${ref.type === "loser" ? "Loser" : "Winner"} of ${labels.get(ref.match_id) ?? `#${ref.match_id}`}` : "TBD");
