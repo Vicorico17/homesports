@@ -7,13 +7,15 @@ type Props = { streams: MatchStream[]; status: string; matchId: number; matchNam
 
 /** Shared by both games. Provider-listed links are not proof that a channel is currently online. */
 export function MatchStreamLinks({ streams, status, matchId, matchName, league, compact = false }: Props) {
+  // A published channel is not this match’s live coverage before/after the series.
+  if (status !== "running") return null;
   // Also validate cached/older normalized feeds at the rendering boundary.
   const safeStreams = streams.flatMap(stream => {
     const url = directStreamUrl(stream.url);
     return url ? [{ ...stream, url }] : [];
   });
   const availability = streamAvailability(status, safeStreams);
-  if (!availability.available) return <span className="match-stream-unavailable" title={status === "finished" ? "A live channel is not a replay of this match." : "No reliable stream link has been published for this match in our sources."}>{availability.label}</span>;
+  if (!availability.available) return <span className="match-stream-unavailable" title="No reliable stream link has been published for this match in our sources.">{availability.label}</span>;
   const [primary, ...alternatives] = safeStreams;
   function link(stream: MatchStream, first = false) {
     const description = `${streamPlatform(stream.url)}${stream.language !== "und" && stream.language !== "stream" ? ` · ${stream.language.toUpperCase()}` : ""}`;

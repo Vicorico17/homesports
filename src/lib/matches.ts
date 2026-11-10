@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { normalizeMatchStatus } from "@/lib/match-status";
 import { enrichMatchStreams } from "@/lib/stream-fallbacks";
 import { normalizeMatchStreams, type MatchStream, type PandaStreamFields } from "@/lib/streams";
 import { pandaResult } from "@/lib/pandascore";
@@ -80,7 +81,7 @@ export function normalizeMatch(match: PandaMatch, requestedStatus: MatchStatus, 
   const { stars, reason } = rateMatch(match, game);
   return {
     id: match.id,
-    status: match.status === "running" ? "running" : match.status === "finished" ? "finished" : requestedStatus,
+    status: normalizeMatchStatus(match.status, requestedStatus),
     beginAt: usableStart(match.begin_at),
     scheduledAt: usableStart(match.scheduled_at) || undefined,
     name: match.name,

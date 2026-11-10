@@ -105,8 +105,8 @@ export function streamPlatform(url: string) {
   return "Stream";
 }
 
+/** Stream controls are live-only; retained URLs must not promote another broadcast. */
 export function streamAvailability(status: string, streams: MatchStream[]) {
-  if (status === "finished") return { label: "Live coverage ended", available: false };
-  if (!["running", "upcoming", "not_started"].includes(status)) return { label: "Stream unavailable", available: false };
-  return streams.length ? { label: status === "running" ? "Watch live" : "Open stream", available: true } : { label: status === "running" ? "No verified stream available" : "Stream not announced", available: false };
+  if (status !== "running") return { label: "", available: false };
+  return streams.length ? { label: "Watch live", available: true } : { label: "No verified stream available", available: false };
 }
