@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { type BracketMatch } from "@/lib/bracket";
 import Link from "next/link";
@@ -9,9 +10,13 @@ import { numericStat } from "@/lib/standings";
 
 export const revalidate = 60;
 
+// Generate on first visit, then reuse the complete route through ISR.
+export function generateStaticParams() { return []; }
+
 
 export default async function BracketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id))) notFound();
   const token = process.env.PANDASCORE_API_KEY;
   const { matches: feedMatches } = await getMatches();
   const localMatch = feedMatches.find((match) => String(match.tournamentId) === id);

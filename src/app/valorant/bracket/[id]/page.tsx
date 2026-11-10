@@ -9,6 +9,9 @@ type Tournament = { name?: string; videogame?: { slug?: string } };
 
 export const revalidate = 60;
 
+// Generate on first visit, then reuse the complete route through ISR.
+export function generateStaticParams() { return []; }
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   return { title: "Valorant playoff bracket", description: "Published Valorant tournament bracket and match scores.", alternates: { canonical: `/valorant/bracket/${id}` } };

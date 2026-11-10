@@ -14,7 +14,7 @@ Set `PANDASCORE_API_KEY` in `.env.local` to use the live PandaScore feed. Withou
 
 Match-winner odds from Odds-API.io are supported on both game boards but disabled by default pending product-policy review. In an approved environment set `ENABLE_ODDS=true` and `ODDS_API_KEY`. Unmatched games show no odds. `ODDS_BOOKMAKERS` and `ODDS_MAX_EVENTS` are optional. Prices are decimal market averages, refreshed through a 60-second cache, not a betting offer or guaranteed live price. There are no wager or affiliate links. Riot's developer policy prohibits betting or gambling functionality and requires review of product changes, so confirm whether displaying odds is permitted before enabling this feature publicly.
 
-The browser refreshes once a minute. The shared match API and PandaScore requests cache for 60 seconds, so active viewers share upstream feeds. LoL and Valorant each request five match pages per refresh cycle when visited; monitor combined provider usage and rate limits in production. Valorant's running match endpoint does not provide live round-by-round telemetry, so the site only displays the match status and series scores published by the provider.
+Visible, online matchboards refresh about once a minute. Background/offline tabs pause, requests do not overlap, and failures back off up to 15 minutes. The initial server feed is reused instead of immediately fetched again; failed refreshes retain the displayed schedule. A shared 60-second Next.js Data Cache stores the normalized match feed separately for LoL and Valorant, so pages, API polling, calendars, and Worlds reuse processing as well as upstream data. A feed regeneration requests five match pages; monitor combined provider usage and rate limits in production. Valorant's running match endpoint does not provide live round-by-round telemetry, so the site only displays the match status and series scores published by the provider.
 
 The `/worlds` hub shows only Worlds 2026 matches published in the live feed. It separates Swiss records from knockout brackets, uses device-local times after hydration, and hides results by default. Team calendar subscriptions use the public `/api/calendar/team/<id>` feed; supported calendar apps can refresh it when fixtures change and display a one-hour match alert. Follows and the spoiler preference remain in the current browser.
 
@@ -22,7 +22,7 @@ Passwordless login is scaffolded with Supabase. To enable it, set `NEXT_PUBLIC_S
 
 Accounts are intentionally disabled in the public beta. Do not set `NEXT_PUBLIC_ENABLE_ACCOUNTS=true` until cookie-based SSR sessions, Row Level Security, account deletion, and data export are implemented. Team follows currently stay in the browser and team calendar feeds contain public schedule data.
 
-Every pull request and push to `main` runs lint, unit tests, and a production build in GitHub Actions. The live-data badge shows the latest successful feed refresh; if PandaScore is unavailable, the site labels the fallback as degraded demo data.
+Every pull request and push to `main` runs lint, unit tests, a production build, and the isolated production cache smoke test in GitHub Actions. The live-data badge shows the latest successful feed refresh; if PandaScore is unavailable, the site labels the fallback as degraded demo data.
 
 See [TODO.md](./TODO.md) for the prioritized product, reliability, account, alert, and revenue work.
 
@@ -63,3 +63,11 @@ The banner at `public/worlds/worlds-2026.jpg` is Riot’s official Worlds 2026 a
 Match cards on the boards and Worlds views open `/match/<id>?game=lol` (or `game=valorant`). Team links, follows, and stream buttons keep their separate actions. Published Worlds bracket matches also open previews; synthetic fallback brackets do not receive match links.
 
 Previews include team logos, optional series scores, and transparent recent-form win estimates. The estimate uses up to 10 completed series per team in the preceding 180 days, with at least five valid results required for each team. Scores are matched by team ID; other games, duplicate records, tied/incomplete results, and results after the cutoff are excluded. Smoothed win rates `(wins + 2) / (series + 4)` are compared using relative win/loss odds and normalized to 100%. This is an uncalibrated heuristic, not bookmaker or live odds, and does not model strength of opposition, drafts, or roster changes. In-progress matches retain a pre-series cutoff. Finished/cancelled matches and insufficient-data cases show no forecast. No odds integration is enabled by this feature.
+
+## CPU and cache regression checks
+
+Run `npm run lint`, `npm test`, `npm run build`, and `npm run test:cache`. The cache smoke test builds a temporary copy with a synthetic provider, makes local requests, and removes that copy afterward. It never uses production credentials or calls external providers and does not replace the normal `.next` build.
+
+Team, tournament, season, and bracket routes for both games use on-demand ISR (`generateStaticParams` returns an empty array). The first visit generates the page; subsequent visits share the complete rendered response. Match previews remain dynamic because their game comes from the query string. Calendar responses are CDN-cacheable for five minutes, with a one-minute stale-while-revalidate window. Live boards and shared feeds retain their one-minute refresh target; ISR/CDN responses may briefly be stale during background regeneration.
+
+After deploying, compare the same traffic window's Active CPU, invocation counts, route cache hits, and PandaScore 429s in Vercel. Check live-score freshness and both games. This reduces avoidable processing; it is not a traffic cap and does not restore an already-exhausted team quota. Do not deploy or change the Vercel plan as part of running these local checks.

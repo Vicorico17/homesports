@@ -8,7 +8,8 @@
     "build": "next build",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts",
     "start": "next start",
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0",
+    "test:cache": "node scripts/test-production-cache.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

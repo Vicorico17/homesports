@@ -11,6 +11,9 @@ type Standing = { rank?: number; team?: { id?: number; name?: string; image_url?
 
 export const revalidate = 60;
 
+// Generate on first visit, then reuse the complete route through ISR.
+export function generateStaticParams() { return []; }
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   if (!/^\d+$/.test(id)) return { title: "Valorant tournament", robots: { index: false } };

@@ -1,5 +1,6 @@
 "use client";
 
+import { startClientPolling } from "@/lib/client-polling";
 import Link from "next/link";
 import { MatchPreviewLink } from "@/components/match-preview-link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -42,15 +43,23 @@ export function WorldsHub({ matches: initialMatches, brackets: initialBrackets, 
   const hideSpoilers = useSyncExternalStore(subscribeToSpoilers, clientSpoilerPreference, serverSpoilerPreference);
   const localTime = useSyncExternalStore(subscribeToClient, clientReady, serverNotReady);
   useEffect(() => {
-    const refresh = () => fetch("/api/worlds").then(response => response.ok ? response.json() as Promise<WorldsData> : null).then(feed => {
-      if (!feed) return;
-      setMatches(feed.matches);
-      setBrackets(feed.brackets);
-      setUpdatedAt(feed.updatedAt);
-      setSourceStatus(feed.sourceStatus);
-    }).catch(() => setSourceStatus("unavailable"));
-    const timer = window.setInterval(refresh, 60_000);
-    return () => window.clearInterval(timer);
+    return startClientPolling(async (signal) => {
+      try {
+        const response = await fetch("/api/worlds", { signal });
+        if (!response.ok) throw Error("Worlds refresh failed");
+        const feed: WorldsData = await response.json();
+        if (!Array.isArray(feed.matches) || !Array.isArray(feed.brackets)) throw Error("Invalid Worlds feed");
+        if (signal.aborted) return;
+        setSourceStatus(feed.sourceStatus);
+        if (feed.sourceStatus !== "healthy") throw Error("Worlds source unavailable");
+        setMatches(feed.matches);
+        setBrackets(feed.brackets);
+        setUpdatedAt(feed.updatedAt);
+      } catch (error) {
+        if (!signal.aborted) setSourceStatus("unavailable");
+        throw error;
+      }
+    });
   }, []);
   const recordGroups = useMemo(() => groupSwissRecords(matches), [matches]);
   const stages = worldsStageOrder.map(name => ({ name, matches: matches.filter(match => worldsStage(match) === name) })).filter(stage => stage.matches.length);
