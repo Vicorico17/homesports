@@ -1,4 +1,6 @@
 import { unstable_cache } from "next/cache";
+import { enrichMatchStreams } from "@/lib/stream-fallbacks";
+import { normalizeMatchStreams, type MatchStream, type PandaStreamFields } from "@/lib/streams";
 import { pandaResult } from "@/lib/pandascore";
 import { loadMatchPages, normalizeMatchGroups, markStaleFeed, MatchFeedUnavailable, singleFlight } from "@/lib/match-feed-loader";
 import { validDate } from "@/lib/data-quality";
@@ -11,6 +13,7 @@ export type Match = {
   id: number;
   status: MatchStatus;
   beginAt: string;
+  scheduledAt?: string;
   name: string;
   league: string;
   leagueImageUrl?: string | null;
@@ -18,7 +21,7 @@ export type Match = {
   tournamentId: number;
   tournamentImageUrl?: string | null;
   hasBracket: boolean;
-  streams: { url: string; language: string; official: boolean }[];
+  streams: MatchStream[];
   rescheduled: boolean;
   mapWinners: string[];
   serie: string;
@@ -39,14 +42,13 @@ export type MatchFeed = {
   updatedAt: string;
 };
 
-export type PandaMatch = {
-  id: number; status: string; begin_at?: string | null; name: string; number_of_games: number;
+export type PandaMatch = PandaStreamFields & {
+  id: number; status: string; begin_at?: string | null; scheduled_at?: string | null; name: string; number_of_games: number;
   videogame?: { slug?: string };
   league?: { name?: string; image_url?: string | null }; tournament?: { id?: number; name?: string; image_url?: string | null; has_bracket?: boolean }; serie?: { id?: number; full_name?: string; name?: string };
   opponents?: { opponent?: { id?: number; name?: string; image_url?: string | null } }[];
   results?: { score?: number; team_id?: number }[];
   rescheduled?: boolean;
-  streams_list?: { raw_url?: string; language?: string; official?: boolean }[];
   games?: { position: number; status: string; winner?: { id?: number | null } }[];
 };
 
@@ -80,6 +82,7 @@ export function normalizeMatch(match: PandaMatch, requestedStatus: MatchStatus, 
     id: match.id,
     status: match.status === "running" ? "running" : match.status === "finished" ? "finished" : requestedStatus,
     beginAt: usableStart(match.begin_at),
+    scheduledAt: usableStart(match.scheduled_at) || undefined,
     name: match.name,
     league: match.league?.name ?? gameName(game),
     leagueImageUrl: match.league?.image_url,
@@ -87,7 +90,7 @@ export function normalizeMatch(match: PandaMatch, requestedStatus: MatchStatus, 
     tournamentId: match.tournament?.id ?? match.id,
     tournamentImageUrl: match.tournament?.image_url,
     hasBracket: match.tournament?.has_bracket ?? false,
-    streams: (match.streams_list ?? []).flatMap((stream) => stream.raw_url ? [{ url: stream.raw_url, language: stream.language ?? "stream", official: stream.official ?? false }] : []).sort((a, b) => Number(b.official) - Number(a.official)),
+    streams: normalizeMatchStreams(match),
     rescheduled: match.rescheduled ?? false,
     mapWinners: (match.games ?? []).sort((a, b) => a.position - b.position).flatMap((game) => {
       const name = game.winner?.id ? teamNames.get(game.winner.id) : undefined;
@@ -160,7 +163,7 @@ async function loadMatches(game: Game): Promise<MatchFeed> {
     });
   const oldestSourceDate = groups.filter(group => group.matches.length > 0).map(group => group.sourceDate && Date.parse(group.sourceDate)).filter((value): value is number => typeof value === "number" && Number.isFinite(value)).sort((a, b) => a - b)[0];
   const feed: MatchFeed = {
-    game, matches: await addPreMatchOdds(sortedMatches, game), demo: false, source: "PandaScore",
+    game, matches: await addPreMatchOdds(complete && validRecords ? await enrichMatchStreams(sortedMatches, game) : sortedMatches, game), demo: false, source: "PandaScore",
     sourceStatus: complete && validRecords ? "healthy" : "unavailable", updatedAt: new Date(oldestSourceDate ?? Date.now()).toISOString(),
   };
   if (!complete || !validRecords) throw new MatchFeedUnavailable(feed);
@@ -169,7 +172,7 @@ async function loadMatches(game: Game): Promise<MatchFeed> {
 
 // Cache only successful normalized feeds. A failed revalidation leaves the last
 // successful result intact instead of replacing it with an empty/demo schedule.
-const cachedMatches = unstable_cache(singleFlight(loadMatches), ["match-feed-v2"], { revalidate: 60 });
+const cachedMatches = unstable_cache(singleFlight(loadMatches), ["match-feed-v3-streams"], { revalidate: 60 });
 
 export async function getMatches(game: Game = "lol"): Promise<MatchFeed> {
   try {

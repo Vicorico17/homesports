@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { panda } from "@/lib/pandascore";
 import { normalizeMatch } from "@/lib/matches";
+import { enrichMatchStreams } from "@/lib/stream-fallbacks";
 import { isMatchGame, predictionCutoff, recentForm, formWinChances, type FormMatch } from "@/lib/match-preview";
 import type { RosterPlayer } from "@/lib/roster";
 import { MatchPreview } from "@/components/match-preview";
@@ -16,7 +17,7 @@ export default async function MatchPage({ params, searchParams }: { params: Prom
   const game = (await searchParams).game === "valorant" ? "valorant" : "lol";
   const raw = await panda<FormMatch>(`matches/${id}`);
   if (!raw || raw.id !== Number(id) || !isMatchGame(raw, game)) return <main className="match-preview-page"><Link href={game === "valorant" ? "/valorant" : "/"}>← Back to matches</Link><h1>Match unavailable</h1><p>The provider could not load this match. Please try again shortly.</p></main>;
-  const match = normalizeMatch(raw, raw.status === "finished" ? "finished" : raw.status === "running" ? "running" : "upcoming", game);
+  const [match] = await enrichMatchStreams([normalizeMatch(raw, raw.status === "finished" ? "finished" : raw.status === "running" ? "running" : "upcoming", game)], game);
   const canEstimate = ["not_started", "running"].includes(raw.status) && match.opponents.length === 2 && match.opponents.every(team => team.id != null);
   const [histories, profiles] = await Promise.all([
     canEstimate ? Promise.all(match.opponents.map(team => panda<FormMatch[]>(`teams/${team.id}/matches?filter[status]=finished&sort=-end_at&per_page=100`, 300))) : Promise.resolve([]),

@@ -2,9 +2,9 @@
 
 import { startClientPolling } from "@/lib/client-polling";
 import Link from "next/link";
+import { MatchStreamLinks } from "@/components/match-stream-links";
 import { MatchPreviewLink } from "@/components/match-preview-link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { track } from "@vercel/analytics";
 import { WorldsTeam } from "@/components/worlds-team";
 import { PlayoffBracket } from "@/components/playoff-bracket";
 import { filterWorldsMatches, groupSwissRecords, groupWorldsMatches, swissMatchGroups, worldsStage, type WorldsData, type WorldsStage } from "@/lib/worlds";
@@ -79,6 +79,5 @@ export function WorldsSection({ initialData, filters }: { initialData: WorldsDat
 }
 
 function WorldsMatchCard({ match, local }: { match: Match; local: boolean }) {
-  const stream = match.streams.find(item => item.official);
-  return <article className={`worlds-fixture match-preview-card ${match.status}`}><div className="worlds-fixture-meta"><span>{match.status === "running" ? "● LIVE" : match.status === "finished" ? "FINISHED" : "UPCOMING"}</span><span>BO{match.bestOf}</span></div><time dateTime={match.beginAt || undefined}>{displayTime(match.beginAt, local)}</time><div className="worlds-fixture-teams">{[0, 1].map(index => { const team = match.opponents[index]; return <div key={index}>{team?.imageUrl ? <img src={team.imageUrl} alt="" width={28} height={28} /> : <span className="worlds-team-placeholder" aria-hidden="true">{team?.name.slice(0, 1) ?? "?"}</span>}{team?.id ? <Link href={`/teams/${team.id}`}>{team.name}</Link> : <span>{team?.name ?? "To be announced"}</span>}<b>{match.status !== "upcoming" ? team?.score ?? "—" : "—"}</b></div>; })}</div><div className="worlds-fixture-actions"><MatchPreviewLink id={match.id} name={match.name} /><Link href={`/competition/${match.tournamentId}`}>Stage details →</Link>{stream && match.status !== "finished" && <a href={stream.url} target="_blank" rel="noopener noreferrer" onClick={() => track("Stream Opened", { matchId: match.id, league: match.league })}>{match.status === "running" ? "Watch live ↗" : "Official stream ↗"}</a>}</div></article>;
+  return <article className={`worlds-fixture match-preview-card ${match.status}`}><div className="worlds-fixture-meta"><span>{match.status === "running" ? "● LIVE" : match.status === "finished" ? "FINISHED" : "UPCOMING"}</span><span>BO{match.bestOf}</span></div><time dateTime={match.beginAt || undefined}>{displayTime(match.beginAt, local)}</time><div className="worlds-fixture-teams">{[0, 1].map(index => { const team = match.opponents[index]; return <div key={index}>{team?.imageUrl ? <img src={team.imageUrl} alt="" width={28} height={28} /> : <span className="worlds-team-placeholder" aria-hidden="true">{team?.name.slice(0, 1) ?? "?"}</span>}{team?.id ? <Link href={`/teams/${team.id}`}>{team.name}</Link> : <span>{team?.name ?? "To be announced"}</span>}<b>{match.status !== "upcoming" ? team?.score ?? "—" : "—"}</b></div>; })}</div><div className="worlds-fixture-actions"><MatchPreviewLink id={match.id} name={match.name} /><Link href={`/competition/${match.tournamentId}`}>Stage details →</Link><MatchStreamLinks streams={match.streams} status={match.status} matchId={match.id} matchName={match.name} league={match.league} compact /></div></article>;
 }
