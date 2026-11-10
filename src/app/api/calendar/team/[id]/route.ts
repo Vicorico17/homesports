@@ -1,3 +1,5 @@
+export const preferredRegion = "iad1";
+
 import { buildTeamCalendar, type CalendarMatch } from "@/lib/calendar";
 import { getMatches } from "@/lib/matches";
 

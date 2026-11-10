@@ -3,7 +3,7 @@ import { normalizeMatchStatus } from "@/lib/match-status";
 import { enrichMatchStreams } from "@/lib/stream-fallbacks";
 import { normalizeMatchStreams, type MatchStream, type PandaStreamFields } from "@/lib/streams";
 import { pandaResult } from "@/lib/pandascore";
-import { loadMatchPages, normalizeMatchGroups, markStaleFeed, MatchFeedUnavailable, singleFlight } from "@/lib/match-feed-loader";
+import { loadMatchPages, feedFreshUntil, mergeMatchGroups, normalizeMatchGroups, markStaleFeed, MatchFeedUnavailable, singleFlight } from "@/lib/match-feed-loader";
 import { validDate } from "@/lib/data-quality";
 import { type Game, gameName, rateValorantMatch } from "@/lib/game";
 import { marketAverage, matchOddsEvent, type OddsEvent, type OddsResult } from "@/lib/odds";
@@ -41,6 +41,7 @@ export type MatchFeed = {
   source: "PandaScore" | "Demo";
   sourceStatus: "healthy" | "not-configured" | "unavailable";
   updatedAt: string;
+  freshUntil?: string;
 };
 
 export type PandaMatch = PandaStreamFields & {
@@ -150,11 +151,11 @@ const demo: Match[] = [
 
 async function loadMatches(game: Game): Promise<MatchFeed> {
   if (!process.env.PANDASCORE_API_KEY) return { game, matches: game === "lol" ? demo : [], demo: true, source: "Demo", sourceStatus: "not-configured", updatedAt: new Date().toISOString() };
-  const { groups: rawGroups, complete } = await loadMatchPages(game, path => pandaResult<PandaMatch[]>(path));
+  const { groups: rawGroups, complete } = await loadMatchPages(game, (path, revalidate) => pandaResult<PandaMatch[]>(path, revalidate));
   const { groups, complete: validRecords } = normalizeMatchGroups(rawGroups, (match, status) => normalizeMatch(match, status, game));
   if (!validRecords) console.error(`PandaScore ${game} feed contained invalid match data.`);
   const statusRank: Record<MatchStatus, number> = { running: 0, upcoming: 1, finished: 2 };
-  const sortedMatches = groups.flatMap(group => group.matches).sort((a, b) => {
+  const sortedMatches = mergeMatchGroups(groups).sort((a, b) => {
       const statusDifference = statusRank[a.status] - statusRank[b.status];
       if (statusDifference) return statusDifference;
       const aTime = new Date(a.beginAt).getTime();
@@ -165,7 +166,7 @@ async function loadMatches(game: Game): Promise<MatchFeed> {
   const oldestSourceDate = groups.filter(group => group.matches.length > 0).map(group => group.sourceDate && Date.parse(group.sourceDate)).filter((value): value is number => typeof value === "number" && Number.isFinite(value)).sort((a, b) => a - b)[0];
   const feed: MatchFeed = {
     game, matches: await addPreMatchOdds(complete && validRecords ? await enrichMatchStreams(sortedMatches, game) : sortedMatches, game), demo: false, source: "PandaScore",
-    sourceStatus: complete && validRecords ? "healthy" : "unavailable", updatedAt: new Date(oldestSourceDate ?? Date.now()).toISOString(),
+    sourceStatus: complete && validRecords ? "healthy" : "unavailable", updatedAt: new Date(oldestSourceDate ?? Date.now()).toISOString(), freshUntil: feedFreshUntil(rawGroups),
   };
   if (!complete || !validRecords) throw new MatchFeedUnavailable(feed);
   return feed;
