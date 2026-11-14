@@ -180,3 +180,65 @@
   .final-stat-grid dd { font-size:15px; margin-left:19px; }
   .final-stat-depth-2 > .final-stat-children { grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
 }
+/* Compact, keyboard-accessible disclosure hierarchy. Scores remain in view. */
+.final-game-list { padding:0 28px 12px; display:grid; gap:10px; }
+.final-fold { min-width:0; margin-top:12px; border:1px solid var(--final-line); border-radius:9px; background:#ffffff02; }
+.final-fold > summary { display:flex; align-items:center; gap:14px; padding:15px 16px; cursor:pointer; list-style:none; border-radius:9px; }
+.final-fold > summary::-webkit-details-marker { display:none; }
+.final-fold > summary:hover { background:#ffffff04; }
+.final-fold > summary:focus-visible { outline:2px solid var(--final-accent); outline-offset:3px; }
+.final-fold-title { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; color:#e4ebdd; }
+.final-fold-title > svg { color:var(--stat-color,var(--final-accent)); width:16px; height:16px; }
+.final-fold-hint { margin-left:auto; display:flex; align-items:center; gap:16px; color:var(--final-muted); font-size:10px; min-width:0; }
+.final-fold-hint b { color:#d5e1c7; font-weight:500; white-space:nowrap; }
+.final-chevron { flex-shrink:0; color:#a3b48f; transition:transform .15s ease; }
+.final-fold[open] > summary > .final-chevron { transform:rotate(180deg); }
+.final-fold[open] > summary { border-bottom:1px solid var(--final-line); border-radius:9px 9px 0 0; }
+.final-fold-body { padding:16px; }
+.final-fold-body > .final-organized-stats:first-child { margin-top:0; }
+.final-fold-body > .final-fold:first-child { margin-top:0; }
+.final-game-detail.final-fold { padding:0; margin:0; border:1px solid #94b16d30; }
+.final-game-detail > summary { padding:18px; }
+.final-game-detail > summary .final-fold-title { font-size:15px; }
+.final-game-result { display:flex; align-items:center; gap:6px; color:var(--final-accent); font-size:11px; }
+.final-game-result svg { width:13px; height:13px; }
+.final-summary-score { color:#e6eede; font-size:14px; font-variant-numeric:tabular-nums; }
+.final-summary-score small { color:var(--final-muted); font-size:9px; margin-left:3px; }
+.final-summary-time { display:flex; align-items:center; gap:5px; font-variant-numeric:tabular-nums; }
+.final-summary-time svg { width:12px; height:12px; }
+.final-stat-depth-1 { padding:0; }
+.final-stat-depth-1 > .final-fold,.final-stat-depth-2 > .final-fold { margin:0; border:0; background:none; }
+.final-stat-depth-1 .final-fold-title { color:var(--stat-color); }
+.final-stat-depth-2 > .final-fold { border:1px solid var(--final-line); }
+.final-stat-categories { gap:8px; }
+.final-stat-depth-1 > .final-fold > .final-fold-body > .final-stat-children { display:grid; grid-template-columns:1fr; gap:10px; }
+.final-stat-depth-2 > .final-fold > .final-fold-body > .final-stat-children { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+.final-roster-grid { grid-template-columns:1fr; gap:8px; }
+.final-roster-grid .final-player-card { padding:0; }
+.final-player-card > summary .final-fold-title { font-size:13px; }
+.final-series-detail { padding-top:0; border-top:0; }
+.final-series-detail > .final-fold { margin-top:0; }
+.final-series-player.final-fold { padding:0; font-size:12px; }
+.final-series-stats > div { flex-wrap:wrap; row-gap:6px; }
+@media(max-width:700px) {
+  .final-game-list { padding:0 12px 12px; }
+  .final-fold > summary { gap:8px; padding:12px; flex-wrap:wrap; }
+  .final-fold-title { font-size:12px; gap:7px; flex:1; }
+  .final-fold-hint { font-size:9px; gap:8px; order:3; flex-basis:100%; margin-left:23px; }
+  .final-chevron { margin-left:auto; }
+  .final-fold-body { padding:10px; }
+  .final-game-detail > summary .final-fold-hint { justify-content:flex-start; }
+  .final-game-result { font-size:10px; flex:1; }
+  .final-summary-score { font-size:12px; }
+  .final-summary-time { font-size:9px; }
+  .final-player-card > summary .final-fold-hint { justify-content:space-between; }
+  .final-stat-depth-2 > .final-fold > .final-fold-body > .final-stat-children { grid-template-columns:1fr; }
+}
+@media(prefers-reduced-motion:reduce) { .final-chevron { transition:none; } }
+.final-summary-score { display:flex; align-items:center; gap:7px; }
+.final-summary-score > span { display:flex; align-items:center; gap:4px; }
+.final-summary-score > span + span::before { content:':'; margin-right:3px; color:var(--final-muted); }
+.final-summary-score b { font-size:13px; }
+.final-summary-score .final-team-mark { width:18px; height:18px; flex-basis:18px; }
+.final-summary-score .final-team-mark > span { font-size:6px; letter-spacing:0; }
+@media(max-width:700px) { .final-game-detail > summary .final-fold-hint { flex-wrap:wrap; } .final-game-result { flex-basis:100%; } .final-summary-time { margin-left:auto; } }

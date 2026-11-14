@@ -61,7 +61,7 @@ export function WorldsFinal({ initialData, match }: { initialData: FinalFeed; ma
     return () => window.clearInterval(timer);
   }, [router]);
   const state = feed.state;
-  const games = state?.games ?? [];
+  const games = (state?.games ?? []).map(game => ({ ...game, teams: [...game.teams].sort((a, b) => (state?.teams.findIndex(team => team.id === a.id) ?? 0) - (state?.teams.findIndex(team => team.id === b.id) ?? 0)) }));
   const teams = state?.teams ?? match?.opponents.map(team => ({ id: String(team.id ?? team.name), name: team.name, score: team.score })) ?? [];
   const logo = (name: string) => match?.opponents.find(team => teamKey(team.name) === teamKey(name))?.imageUrl;
   const status = state ? state.finished ? "Final result" : state.started ? "In progress · 5-min delay" : "Upcoming" : match ? match.status === "finished" ? "Final result" : match.status === "running" ? "In progress" : "Upcoming" : "Coverage pending";
@@ -86,14 +86,33 @@ export function WorldsFinal({ initialData, match }: { initialData: FinalFeed; ma
         <div className="final-section-heading"><h3><Icon name="chart" /> The series</h3><span>Results & statistics · automatically updated</span></div>
         <div className="final-series-stats">{state.teams.map(team => <div key={team.id}><TeamLogo name={team.name} url={logo(team.name)} /><strong>{team.name}</strong><span><Icon name="swords" />{value(team.kills)} kills</span><span>{value(team.deaths)} deaths · {value(team.assists)} assists</span></div>)}</div>
         {games.length > 0 ? <>
-          <nav className="final-game-picker" aria-label="Game results">{games.map(game => <a key={game.id} href={`#final-game-${game.number}`}><span>GAME {String(game.number).padStart(2, "0")}</span><strong>{game.finished ? game.teams.find(t => t.won)?.name ?? "Finished" : game.started ? "In progress" : "Not started"}</strong><small>{game.teams.map(t => value(t.kills)).join(" : ")} · kills</small></a>)}</nav>
-          {games.map(game => <section id={`final-game-${game.number}`} className="final-game-detail" key={game.id} aria-label={`Game ${game.number} statistics`}><div className="final-game-heading"><h3><span>{String(game.number).padStart(2, "0")}</span> Game {game.number}</h3><span><Icon name="clock" />{game.seconds != null ? `${Math.floor(game.seconds / 60)}:${String(Math.floor(game.seconds % 60)).padStart(2, "0")}` : "Time pending"} · {game.finished ? "Final" : game.started ? "In progress" : "Not started"}</span></div>{game.started || game.finished ? <><div className="final-team-stats">{game.teams.map(team => <TeamStats team={team} logo={logo(team.name)} key={team.id} />)}</div><div className="final-analysis-heading"><Icon name="chart" /><h4>Team analysis</h4><span>Combat · economy · map control</span></div><div className="final-team-stats final-analysis-grid">{game.teams.map(team => <section className="final-analysis-team" key={team.id}><h4><TeamLogo name={team.name} url={logo(team.name)} />{team.name}</h4><Stats group={team.details} /></section>)}</div><div className="final-analysis-heading"><Icon name="users" /><h4>Player deep dive</h4><span>Loadouts, performance & status</span></div>{game.teams.map(team => <section className="final-roster" key={team.id}><h4><TeamLogo name={team.name} url={logo(team.name)} />{team.name}</h4><div className="final-roster-grid">{team.players.map(player => <section className="final-player-card" key={player.id}><header><span className="final-player-icon"><Icon name="users" /></span><div><h5>{player.name}</h5><span>{player.champion ?? "Champion pending"}</span></div><b>{value(player.kills)} / {value(player.deaths)} / {value(player.assists)}</b></header><Stats group={player.details} /></section>)}</div></section>)}<Stats group={game.details} title="Draft & map snapshot" /></> : <p className="final-notice">Statistics will appear when this game starts and the delayed feed arrives.</p>}</section>)}
+          <div className="final-game-list">{games.map(game => <Fold key={game.id} id={`final-game-${game.number}`} className="final-game-detail" icon="swords" title={`Game ${game.number}`} hint={<><span className="final-game-result">{game.finished ? <><Icon name="trophy" />{game.teams.find(t => t.won)?.name ?? "Finished"}</> : game.started ? "In progress" : "Not started"}</span><span className="final-summary-score" aria-label={game.teams.map(team => `${team.name}: ${value(team.kills)} kills`).join(", ")}>{game.teams.map(team => <span key={team.id} title={team.name}><TeamLogo name={team.name} url={logo(team.name)} /><b>{value(team.kills)}</b></span>)}<small>kills</small></span><span className="final-summary-time"><Icon name="clock" />{game.seconds != null ? `${Math.floor(game.seconds / 60)}:${String(Math.floor(game.seconds % 60)).padStart(2, "0")}` : "Time pending"}</span></>}>
+            {game.started || game.finished ? <>
+              <div className="final-team-stats">{game.teams.map(team => <TeamStats team={team} logo={logo(team.name)} key={team.id} />)}</div>
+              <Fold title="Team analysis" icon="chart" hint="Combat, economy, vision & objectives">
+                <div className="final-team-stats final-analysis-grid">{game.teams.map(team => <section className="final-analysis-team" key={team.id}><h4><TeamLogo name={team.name} url={logo(team.name)} />{team.name}</h4><Stats group={team.details} /></section>)}</div>
+              </Fold>
+              <Fold title="Players & loadouts" icon="users" hint={`${game.teams.reduce((count, team) => count + team.players.length, 0)} players · full breakdowns`}>
+                {game.teams.map(team => <section className="final-roster" key={team.id}><h4><TeamLogo name={team.name} url={logo(team.name)} />{team.name}</h4><div className="final-roster-grid">{team.players.map(player => <Fold className="final-player-card" key={player.id} title={player.name} icon="users" hint={<><span>{player.champion ?? "Champion pending"}</span><b>{value(player.kills)} / {value(player.deaths)} / {value(player.assists)}</b></>}><Stats group={player.details} /></Fold>)}</div></section>)}
+              </Fold>
+              <Fold title="Draft & map" icon="tower" hint="Picks, bans, structures & game state"><Stats group={game.details} /></Fold>
+            </> : <p className="final-notice">Statistics will appear when this game starts and the delayed feed arrives.</p>}
+          </Fold>)}</div>
         </> : <p className="final-notice">Individual game statistics have not been published yet.</p>}
-        <div className="final-series-detail"><Stats group={state.details} title="Series information" /><div className="final-team-stats">{state.teams.map(team => <div key={team.id}><h4>{team.name} · series breakdown</h4><Stats group={team.details} />{team.players.map(player => <div className="final-series-player" key={player.id}><strong>{player.name}</strong><span>{value(player.kills)} kills · {value(player.deaths)} deaths · {value(player.assists)} assists</span><Stats group={player.details} /></div>)}</div>)}</div></div>
+        <div className="final-series-detail"><Fold title="Series breakdown" icon="chart" hint="Series totals, players & match information"><Stats group={state.details} title="Series information" /><div className="final-team-stats">{state.teams.map(team => <section key={team.id}><h4>{team.name}</h4><Stats group={team.details} /><Fold title={`${team.name} players`} icon="users" hint={`${team.players.length} players`}>{team.players.map(player => <Fold className="final-series-player" title={player.name} icon="users" key={player.id} hint={`${value(player.kills)} / ${value(player.deaths)} / ${value(player.assists)} KDA`}><Stats group={player.details} /></Fold>)}</Fold></section>)}</div></Fold></div>
       </> : <div className="final-pending"><div className="final-pending-copy"><span className="final-orbit"><Icon name="chart" /></span><div><h3>{match?.status === "finished" ? "The result is in. The breakdown is next." : "The stage is set."}</h3><p>{match ? "Scores are visible above. Official game snapshots will appear here automatically when GRID publishes them." : "Verified teams, results and game snapshots will appear here as they become available."}</p></div><span className="final-awaiting">{feed.status === "unavailable" ? "GRID UNAVAILABLE" : "AWAITING GRID"}</span></div><div className="final-coverage">{([["swords", "Every player", "KDA, damage & participation"], ["gold", "The economy", "Gold, items & power plays"], ["trophy", "Every objective", "Draft, dragons & structures"], ["eye", "Beyond the score", "Vision, abilities & map state"]] as const).map(([icon, title, description]) => <div key={title}><Icon name={icon} /><strong>{title}</strong><span>{description}</span></div>)}</div>{match?.mapWinners.length ? <ol className="final-game-results">{match.mapWinners.map((winner, index) => <li key={index}><span>GAME {index + 1}</span><strong><Icon name="trophy" />{winner}</strong></li>)}</ol> : null}</div>}
     </div>
     <footer className="final-source"><div><img src="/grid-logo.png" alt="GRID" width={48} height={24} /><span>{state ? <>Official Riot Esports Data powered by GRID<br />5-minute live delay · Updated {timestamp(state.updatedAt ?? feed.fetchedAt)}</> : <>{match ? "Schedule & results: PandaScore · " : ""}Official GRID statistics pending<br />Game snapshots carry a 5-minute live delay.</>}</span></div>{state && feed.status !== "ready" && <span role="status">Refresh unavailable · showing last received statistics</span>}<a href="https://lolesports.com/en-GB/news/build-with-official-league-of-legends-esports-data" target="_blank" rel="noreferrer">About the data ↗</a><p>HomeSports and any product on it are not endorsed or sponsored by Riot Games or GRID.</p></footer>
   </section>;
+}
+
+function Fold({ title, hint, icon = "chart", className = "", id, children }: {
+  title: string; hint?: React.ReactNode; icon?: IconName; className?: string; id?: string; children: React.ReactNode;
+}) {
+  return <details id={id} className={`final-fold ${className}`}>
+    <summary><span className="final-fold-title"><Icon name={icon} />{title}</span>{hint && <span className="final-fold-hint">{hint}</span>}<svg className="final-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></summary>
+    <div className="final-fold-body">{children}</div>
+  </details>;
 }
 
 function Stats({ group, title, depth = 0 }: { group?: StatGroup; title?: string; depth?: number }) {
@@ -103,11 +122,13 @@ function Stats({ group, title, depth = 0 }: { group?: StatGroup; title?: string;
     <div className="final-stat-categories">{organizeStats(group).map(category => <Stats key={category.title} group={category} depth={1} />)}</div>
   </div>;
   const icon = metricIcon(group.title);
-  return <section className={`final-stat-group final-stat-depth-${Math.min(depth, 3)}`} data-tone={icon}>
-    <h5><span className="final-category-icon"><Icon name={icon} /></span>{group.title}</h5>
+  const content = <>
     {group.fields.length > 0 && <dl className="final-stat-grid">{group.fields.map(field => <div key={field.key} data-tone={metricIcon(field.label)}><dt><Icon name={metricIcon(field.label)} /><span>{field.label}</span></dt><dd className={typeof field.value === "boolean" ? "final-stat-boolean" : undefined}>{typeof field.value === "number" ? value(field.value) + (field.unit ?? "") : typeof field.value === "boolean" ? field.value ? "Yes" : "No" : field.value ?? "—"}</dd></div>)}</dl>}
     {group.groups.length > 0 && <div className="final-stat-children">{group.groups.map((child, i) => <Stats group={child} depth={depth + 1} key={`${child.title}-${i}`} />)}</div>}
-  </section>;
+  </>;
+  const className = `final-stat-group final-stat-depth-${Math.min(depth, 3)}`;
+  if (depth <= 2) return <div className={className} data-tone={icon}><Fold title={group.title} icon={icon} hint={[group.fields.length ? `${group.fields.length} stats` : "", group.groups.length ? `${group.groups.length} breakdowns` : ""].filter(Boolean).join(" · ")}>{content}</Fold></div>;
+  return <section className={className} data-tone={icon}><h5><span className="final-category-icon"><Icon name={icon} /></span>{group.title}</h5>{content}</section>;
 }
 
 function TeamStats({ team, logo }: { team: FinalTeam; logo?: string | null }) {
