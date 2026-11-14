@@ -12,6 +12,7 @@ import "./legal.css";
 import "./preselect-twitch-extension.css";
 import "./login/login.css";
 import "./worlds.css";
+import "./worlds-final.css";
 import "./play.css";
 import "./match-preview.css";
 import "./match-information.css";
