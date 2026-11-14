@@ -1,3 +1,4 @@
+import { fullSnapshotQuery } from "./grid-query.ts";
 import { normalizeFinalState, type FinalFeed } from "./worlds-final.ts";
 
 // Open Access endpoints; credentials remain on the server.
@@ -17,12 +18,11 @@ async function query<T>(endpoint: string, document: string, variables: Record<st
 }
 
 const coreTeam = "id name won score kills deaths players { id name kills deaths }";
-const detailedTeam = "id name won score kills deaths killAssistsGiven netWorth objectives { type completionCount } players { id name kills deaths killAssistsGiven netWorth character { name } ... on GamePlayerStateLol { damageDealt visionScore totalMoneyEarned } }";
-const stateQuery = (detailed: boolean) => `query WorldsFinal($id: ID!) {
+const stateQuery = (detailed: boolean) => detailed ? fullSnapshotQuery : `query WorldsFinal($id: ID!) {
   seriesState(id: $id) {
     id valid started finished updatedAt
     teams { ${coreTeam} }
-    games { id sequenceNumber started finished ${detailed ? "clock { currentSeconds }" : ""} teams { ${detailed ? detailedTeam : coreTeam} } }
+    games { id sequenceNumber started finished teams { ${coreTeam} } }
   }
 }`;
 
@@ -43,10 +43,11 @@ export async function getGridFinal(): Promise<FinalFeed> {
     id = candidates[0].node.id;
   }
   // New or restricted data models may omit extended fields. Preserve basic coverage.
-  const data = await query<{ seriesState: unknown }>(seriesState, stateQuery(true), { id })
-    ?? await query<{ seriesState: unknown }>(seriesState, stateQuery(false), { id });
+  let data = await query<{ seriesState: unknown }>(seriesState, stateQuery(true), { id });
+  const coverage = data ? "full" : "basic";
+  data ??= await query<{ seriesState: unknown }>(seriesState, stateQuery(false), { id });
   // GRID returns { data: {} } before a series snapshot has been published.
   if (data && data.seriesState == null) return { ...empty, status: "pending" };
   const state = normalizeFinalState(data?.seriesState);
-  return { state, status: state ? "ready" : "unavailable", fetchedAt: state ? new Date().toISOString() : null };
+  return { state, coverage, status: state ? "ready" : "unavailable", fetchedAt: state ? new Date().toISOString() : null };
 }

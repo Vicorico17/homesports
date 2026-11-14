@@ -30,3 +30,19 @@ test("normalization preserves zero stats and missing values without fabricating 
 test("invalid, partial, and duplicate-team states are rejected", () => {
   for (const state of [null, {}, { id: "1", teams: [] }, { id: "1", valid: false, teams: [{ id: "a" }, { id: "b" }] }, { id: "1", teams: [{ id: "a" }, { id: "a" }] }]) assert.equal(normalizeFinalState(state), null);
 });
+
+test("expanded snapshots retain signed gold, zero/false, percentages, items, drafts and map state", () => {
+  const state = normalizeFinalState({ id: "s", teams: [{ id: "a", name: "Alpha" }, { id: "b", name: "Beta" }], games: [{ id: "g", sequenceNumber: 1, started: true,
+    draftActions: [{ id: "draft-internal", type: "ban", sequenceNumber: "1", drafter: { id: "a", type: "team" }, draftable: { id: "champ-internal", name: "Ahri" } }],
+    structures: [{ id: "blue-turret-top-1", type: "tower", currentHealth: 0, destroyed: true, position: { x: -300, y: 100 } }],
+    teams: [{ id: "a", moneyDifference: -2500, firstKill: false, visionScorePerMinute: 1.25, players: [{ id: "p", name: "Player", killParticipation: 85, currentHealth: 0, inventory: { items: [{ id: "item-internal", name: "Boots", quantity: 1, equipped: 1, stashed: 0 }] } }] }] }] });
+  const game = state!.games[0];
+  assert.equal(game.teams[0].details?.fields.find(f => f.key === "moneyDifference")?.value, -2500);
+  assert.equal(game.teams[0].details?.fields.find(f => f.key === "firstKill")?.value, false);
+  const player = game.teams[0].players[0];
+  assert.deepEqual(player.details?.fields.find(f => f.key === "killParticipation"), { key: "killParticipation", label: "Kill participation", value: 85, unit: "%" });
+  assert.equal(player.details?.fields.find(f => f.key === "currentHealth")?.value, 0);
+  const text = JSON.stringify(state);
+  for (const visible of ["Boots", "Ahri", "Alpha", "Towers & structures", "-300"]) assert.ok(text.includes(visible));
+  for (const internal of ["item-internal", "draft-internal", "champ-internal"]) assert.ok(!text.includes(internal));
+});
