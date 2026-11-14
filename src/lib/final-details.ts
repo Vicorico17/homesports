@@ -51,3 +51,35 @@ export function snapshotDetails(value: unknown, omitted: string[] = [], names: R
   }
   return { title, fields, groups };
 }
+
+/** Group the display without dropping fields, including unfamiliar future metrics. */
+export function organizeStats(group: StatGroup): StatGroup[] {
+  const buckets = ["Combat", "Economy", "Loadout & abilities", "Vision & positioning", "Objectives & map control", "Health & status", "Match details"]
+    .map(title => ({ title, fields: [] as StatField[], groups: [] as StatGroup[] }));
+  const category = (key: string) => {
+    if (/inventory|items|loadout|abilit|active effects|status effects/i.test(key)) return 2;
+    if (/vision|ward|position|forward|bounds/i.test(key)) return 3;
+    if (/objective|structure|tower|baron|draft|pick|ban|neutral|unit kills/i.test(key)) return 4;
+    if (/money|gold|worth|experience/i.test(key)) return 1;
+    if (/health|armor|alive|respawn|participation status/i.test(key)) return 5;
+    if (/kill|death|assist|damage|kda|first blood|combat/i.test(key)) return 0;
+    return 6;
+  };
+  for (const field of group.fields) buckets[category(field.key + " " + field.label)].fields.push(field);
+  for (const child of group.groups) {
+    // GRID nests inventory.items; show the item cards under one heading.
+    const display = !child.fields.length && child.groups.length === 1 && child.groups[0].title === child.title ? child.groups[0] : child;
+    buckets[category(child.title)].groups.push(display);
+  }
+  const priority = ["kills", "deaths", "killAssistsGiven", "kdaRatio", "killParticipation", "damageDealt", "damagePerMinute", "damageTaken", "damagePercentage", "firstKill", "killAssistsReceived", "totalMoneyEarned", "netWorth", "moneyDifference", "moneyPerMinute", "money", "visionScore", "visionScorePerMinute", "currentHealth", "maxHealth", "currentArmor"];
+  for (const bucket of buckets) bucket.fields.sort((a, b) => {
+    const rank = (key: string) => { const index = priority.indexOf(key); return index < 0 ? priority.length : index; };
+    return rank(a.key) - rank(b.key);
+  });
+  const additional = buckets[0].fields.filter(field => /teamkill|selfkill|weapon/i.test(field.key));
+  if (additional.length) {
+    buckets[0].fields = buckets[0].fields.filter(field => !additional.includes(field));
+    buckets[0].groups.push({ title: "Additional combat stats", fields: additional, groups: [] });
+  }
+  return buckets.filter(bucket => bucket.fields.length || bucket.groups.length);
+}
