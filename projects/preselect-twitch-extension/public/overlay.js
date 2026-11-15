@@ -1,6 +1,8 @@
+import {createChannelClient,readResponse,showConnectionError} from "./channel-client.js";
+const channelClient=createChannelClient(location);
 const escapeHtml=value=>String(value??"").replace(/[&<>'"]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));
-let state;
-async function refresh(){state=await fetch("/api/state",{cache:"no-store"}).then(r=>r.json());render()}
+let state,refreshPromise;
+async function refresh(){if(document.hidden)return;if(refreshPromise)return refreshPromise;refreshPromise=(async()=>{try{state=await readResponse(await fetch(channelClient.url("/api/state"),{cache:"no-store"}));channelClient.adopt(state);render()}catch(error){showConnectionError(document.querySelector("#overlay"),error,channelClient)}})();try{await refreshPromise}finally{refreshPromise=null}}
 function render(){
   const root=document.querySelector("#overlay");
   if(!state?.match){root.innerHTML="";return}
@@ -11,4 +13,4 @@ function render(){
   timer();
 }
 function timer(){const el=document.querySelector("#overlay-timer");if(!el||!state?.round)return;const left=Math.max(0,state.round.closesAt-Date.now());el.textContent=state.round.status==="open"?`${Math.ceil(left/1000)}s`:"CLOSED";el.classList.toggle("closed",state.round.status!=="open")}
-new EventSource("/api/events").addEventListener("refresh",refresh);setInterval(timer,200);setInterval(refresh,3000);refresh();
+try{new EventSource(channelClient.url("/api/events")).addEventListener("refresh",refresh)}catch(error){showConnectionError(document.querySelector("#overlay"),error,channelClient)};setInterval(timer,200);setInterval(refresh,3000);refresh();
