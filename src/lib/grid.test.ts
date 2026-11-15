@@ -73,3 +73,11 @@ test("GRID catalog bounds listings and reports incomplete pagination", async t =
     assert.equal(result.series[0].teams[0], "A");
   } finally { if (key === undefined) delete process.env.GRID_API_KEY; else process.env.GRID_API_KEY = key; }
 });
+
+ test("GRID test tournaments are explicitly identified, never presumed real", async t => {
+  const { getGridCatalog } = await import("./grid.ts");
+  const key = process.env.GRID_API_KEY; process.env.GRID_API_KEY = "test-only-key";
+  t.mock.method(globalThis, "fetch", async () => Response.json({ data: { allSeries: { edges: [{ node: { id: "3", startTimeScheduled: "2026-11-15T15:00:00Z", tournament: { name: "GRID-TEST" } } }], pageInfo: { hasNextPage: false } } } }));
+  try { assert.equal((await getGridCatalog()).series[0].isTest, true); }
+  finally { if (key === undefined) delete process.env.GRID_API_KEY; else process.env.GRID_API_KEY = key; }
+});

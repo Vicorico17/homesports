@@ -42,3 +42,7 @@ Gmail search located a registration verification message, not a current executed
 ## Clarified implementation
 
 `/premium` now provides a bounded 3-day GRID Central Data listing (up to 50 entries, honestly marked partial when paginated). It does not fetch snapshots for every card. `/premium/[id]` renders the requested series snapshot, details and players on demand. No guessed PandaScore-to-GRID mappings are made. The GRID listing deliberately calls fixtures candidates rather than claiming rich statistics before a successful snapshot. No source credentials or raw feed endpoint are exposed.
+
+## Production verification and guardrail
+
+The first production catalogue check on November 15 returned only series 3 and 74, both under `GRID-TEST`. Series 3 returned rich player/champion/clock statistics, but that is **test coverage**, not proof of live competition entitlement. Test/demo/sample tournaments are excluded from the Premium listing. Direct snapshots identified as tests are clearly labelled; unlisted snapshots are labelled unverified and a started snapshot is never called proof of a live match. Actual competition coverage and account display rights remain unverified. No paid services were enabled.

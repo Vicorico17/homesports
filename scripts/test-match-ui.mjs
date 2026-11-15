@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 // Render real routes against synthetic data. This is not a browser/layout test.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const workspace = await mkdtemp(path.join(tmpdir(), 'homesports-match-ui-'));
-const env = { ...process.env, PANDASCORE_API_KEY: 'local-ui-fixture', ENABLE_ODDS: 'false', NEXT_PUBLIC_ENABLE_ACCOUNTS: 'false', NEXT_TELEMETRY_DISABLED: '1', NODE_OPTIONS: `--import ${path.join(root, 'scripts/fixtures/ui-provider.mjs')}` };
+const env = { ...process.env, PANDASCORE_API_KEY: 'local-ui-fixture', GRID_API_KEY: 'local-grid-fixture', ENABLE_ODDS: 'false', NEXT_PUBLIC_ENABLE_ACCOUNTS: 'false', NEXT_TELEMETRY_DISABLED: '1', NODE_OPTIONS: `--import ${path.join(root, 'scripts/fixtures/ui-provider.mjs')}` };
 const next = path.join(root, 'node_modules/next/dist/bin/next');
 let server, serverExit;
 let output = '';
@@ -91,6 +91,10 @@ try {
   }
   const premium = await page('/premium'); assert.match(premium, /FREE FOR EVERYONE/); assert.doesNotMatch(premium, /Subscribe|checkout|Pay now/);
   assert.equal((await fetch(base + '/premium/invalid')).status, 404);
+  assert.match(premium, /href="\/premium\/456"/); assert.doesNotMatch(premium, /href="\/premium\/3"|GRID-TEST/);
+  const rich = await page('/premium/456'); assert.match(rich, /Ahri/); assert.match(rich, /20:34/); assert.match(rich, /ALWAYS FREE/);
+  const providerTest = await page('/premium/3'); assert.match(providerTest, /PROVIDER TEST DATA/); assert.doesNotMatch(providerTest, /Live match ·/);
+
   const agents = await page('/agents'); assert.match(agents, /For agents|Agent access|AI agents/i);
   const login = await page('/login'); assert.match(login, /No account needed/); assert.doesNotMatch(login, /<form|type="email"/);
   assert.equal((await fetch(base + '/worlds')).status, 404, 'Retired Worlds page remains public');

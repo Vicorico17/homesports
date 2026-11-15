@@ -62,7 +62,7 @@ export async function getGridSeries(id: string): Promise<FinalFeed> {
   return { state, coverage, status: state ? "ready" : "unavailable", fetchedAt: state ? new Date().toISOString() : null };
 }
 
-export type GridListing = { id: string; scheduledAt: string; tournament: string; teams: string[] };
+export type GridListing = { id: string; scheduledAt: string; tournament: string; isTest: boolean; teams: string[] };
 export type GridCatalog = { status: "ready" | "not-configured" | "unavailable"; series: GridListing[]; partial: boolean };
 export async function getGridCatalog(now = new Date()): Promise<GridCatalog> {
   if (!process.env.GRID_API_KEY) return { status: "not-configured", series: [], partial: false };
@@ -76,6 +76,6 @@ export async function getGridCatalog(now = new Date()): Promise<GridCatalog> {
     }
   }`);
   if (!data?.allSeries?.edges) return { status: "unavailable", series: [], partial: false };
-  const series = data.allSeries.edges.map(({ node }) => node).filter(node => /^\d{1,20}$/.test(node.id) && Number.isFinite(Date.parse(node.startTimeScheduled))).map(node => ({ id: node.id, scheduledAt: node.startTimeScheduled, tournament: node.tournament?.name || "Tournament", teams: (node.teams ?? []).map(t => t.baseInfo?.name).filter((v): v is string => !!v) }));
+  const series = data.allSeries.edges.map(({ node }) => node).filter(node => /^\d{1,20}$/.test(node.id) && Number.isFinite(Date.parse(node.startTimeScheduled))).map(node => ({ id: node.id, scheduledAt: node.startTimeScheduled, tournament: node.tournament?.name || "Tournament", isTest: /(?:^|[\s_-])(test|demo|sample)(?:$|[\s_-])/i.test(node.tournament?.name || ""), teams: (node.teams ?? []).map(t => t.baseInfo?.name).filter((v): v is string => !!v) }));
   return { status: "ready", series: series.slice(0, 50), partial: !!data.allSeries.pageInfo?.hasNextPage || series.length > 50 };
 }

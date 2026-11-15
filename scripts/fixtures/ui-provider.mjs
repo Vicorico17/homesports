@@ -5,6 +5,11 @@ const atHour = offset => new Date(now.getTime() + offset * 3_600_000).toISOStrin
 globalThis.fetch = async function fixtureFetch(input, init) {
   const url = new URL(typeof input === 'string' ? input : input.url ?? String(input));
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return originalFetch(input, init);
+  if (url.hostname === 'api-op.grid.gg') {
+    if (url.pathname.includes('central-data')) return Response.json({ data: { allSeries: { edges: ['456', '3'].map(id => ({ node: { id, startTimeScheduled: atHour(1), tournament: { name: id === '3' ? 'GRID-TEST' : 'Fixture Cup' }, teams: [{ baseInfo: { name: 'Fixture A' } }, { baseInfo: { name: 'Fixture B' } }] } })), pageInfo: { hasNextPage: false } } } });
+    const id = JSON.parse(init.body).variables.id;
+    return Response.json({ data: { seriesState: { id, valid: true, started: true, finished: false, teams: [{ id: '1', name: 'Fixture A' }, { id: '2', name: 'Fixture B' }], games: [{ id: 'g1', sequenceNumber: 1, started: true, clock: { currentSeconds: 1234 }, teams: [{ id: '1', name: 'Fixture A', players: [{ id: 'p1', name: 'Fixture Player', character: { name: 'Ahri' } }] }] }] } } });
+  }
   if (!['api.pandascore.co', 'lol.fandom.com'].includes(url.hostname)) throw Error(`Unexpected external request in UI test: ${url.hostname}`);
   if (url.hostname === 'lol.fandom.com') return Response.json({ cargoquery: [] });
   const game = url.pathname.startsWith('/valorant') || /\/(?:teams|tournaments|series)\/1[123]\d(?:\/|$)/.test(url.pathname) || /\/matches\/11\d\d/.test(url.pathname) ? 'valorant' : 'lol';
