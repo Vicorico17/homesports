@@ -6,11 +6,10 @@ import { publicTournamentId } from "./public-links.ts";
 // One inventory for the guide, JSON catalog, sitemap and static page metadata.
 // Describes public capabilities, never browser-local progress or account data.
 export const publicPages = [
-  { path: "/", title: "League of Legends matches", description: "Live and upcoming League of Legends series, ranked by editorial importance, with a Worlds spotlight.", reading: "Server-rendered matchboard; filters and refresh use JavaScript. Use the match API for a bounded snapshot." },
+  { path: "/", title: "League of Legends matches", description: "Live and upcoming League of Legends series, ranked by editorial importance.", reading: "Server-rendered matchboard; filters and refresh use JavaScript. Use the match API for a bounded snapshot." },
   { path: "/live", title: "Live League of Legends matches", description: "Running League of Legends series and provider-listed broadcast links.", reading: "Status is a provider snapshot, not proof that a stream is currently online." },
   { path: "/results", title: "League of Legends results", description: "Recent completed League of Legends series.", reading: "Results page; may contain spoilers. API scores require include_results=true." },
   { path: "/calendar", title: "League of Legends match calendar", description: "Public League of Legends schedule in a calendar or mobile agenda.", reading: "Initial times are UTC; JavaScript changes them to device-local time. Not a complete schedule archive." },
-  { path: "/worlds", title: "Worlds 2026 schedule and stages", description: "Published Worlds 2026 fixtures, Swiss records, and tournament brackets.", reading: "Read the source-quality notice. Coverage may be partial. Scores start hidden, but standings and bracket progression may reveal outcomes. No dedicated agent JSON API." },
   { path: "/valorant", title: "Valorant esports matches", description: "Live and upcoming Valorant series, ranked by editorial importance.", reading: "Server-rendered matchboard; use game=valorant in the match API. No live round telemetry." },
   { path: "/valorant/live", title: "Live Valorant matches", description: "Running Valorant series and provider-listed broadcast links.", reading: "A published link does not independently verify that a channel is live." },
   { path: "/valorant/results", title: "Valorant results", description: "Recent completed Valorant series.", reading: "Results page; may contain spoilers. API scores require include_results=true." },

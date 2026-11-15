@@ -35,7 +35,7 @@ try {
     const response = await fetch(base + route); assert.equal(response.status, 200, route);
     return (await response.text()).replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
   }
-  const liveRoutes = ['/', '/valorant', '/competition/20', '/competition/series/30', '/valorant/competition/120', '/valorant/competition/series/130', '/worlds', '/calendar', '/valorant/calendar', '/match/1000?game=lol', '/match/1100?game=valorant', '/bracket/20', '/teams/10', '/valorant/teams/110'];
+  const liveRoutes = ['/', '/valorant', '/competition/20', '/competition/series/30', '/valorant/competition/120', '/valorant/competition/series/130', '/calendar', '/valorant/calendar', '/match/1000?game=lol', '/match/1100?game=valorant', '/bracket/20', '/teams/10', '/valorant/teams/110'];
   for (const route of liveRoutes) {
     const html = await page(route);
     assert.match(html, /class="live-badge"/, `Missing LIVE badge: ${route}`);
@@ -85,17 +85,24 @@ try {
       assert.equal(feed.matches.find(match => match.id === id)?.streams.length, 2, `Underlying primary/alternate stream data lost: ${game}/${id}`);
     }
   }
-  for (const route of ['/worlds', '/play']) {
+  for (const route of ['/play']) {
     const html = await page(route);
     assert.doesNotMatch(html, /href="\/calendar"/, `Duplicate Schedule navigation remains: ${route}`);
   }
   const agents = await page('/agents'); assert.match(agents, /For agents|Agent access|AI agents/i);
   const login = await page('/login'); assert.match(login, /No account needed/); assert.doesNotMatch(login, /<form|type="email"/);
-  const worlds = await page('/worlds'); assert.match(worlds, /Worlds 2026/); assert.match(worlds, /Show results/);
-  assert.doesNotMatch(worlds, /<b>[12]<\/b>/, 'Spoiler-hidden Worlds cards exposed scores');
+  assert.equal((await fetch(base + '/worlds')).status, 404, 'Retired Worlds page remains public');
+  for (const route of ['/', '/results', '/play', '/agents']) {
+    const html = await page(route);
+    assert.doesNotMatch(html, /href="\/worlds"|worlds-spotlight|worlds-final/, `Retired promotion remains on ${route}`);
+  }
+  const home = await page('/');
+  assert.match(home, /href="\/play"/, 'Daily Games navigation lost');
+  const history = await (await fetch(base + '/api/worlds')).json();
+  assert.ok(history.matches.some(match => match.status === 'finished'), 'Historical Worlds matches lost');
   const calendar = await fetch(`${base}/api/calendar/team/10`); assert.equal(calendar.status, 200); assert.match(await calendar.text(), /BEGIN:VCALENDAR/);
   // Agent discovery is present in server-rendered HTML, with no JavaScript required.
-  for (const route of ['/', '/live', '/results', '/calendar', '/valorant', '/valorant/live', '/valorant/results', '/valorant/calendar', '/privacy', '/agents', '/worlds', '/preselect-twitch-extension', '/bracket/20', '/match/1000?game=lol', '/match/1100?game=valorant']) {
+  for (const route of ['/', '/live', '/results', '/calendar', '/valorant', '/valorant/live', '/valorant/results', '/valorant/calendar', '/privacy', '/agents', '/preselect-twitch-extension', '/bracket/20', '/match/1000?game=lol', '/match/1100?game=valorant']) {
     const response = await fetch(base + route); assert.equal(response.status, 200, route);
     const html = await response.text();
     const canonical = html.match(/<link rel="canonical" href="([^"]+)"/);
@@ -119,11 +126,13 @@ try {
   const guide = await (await fetch(base + '/llms-full.txt')).text();
   assert.equal(guide, await (await fetch(base + '/agents/index.md')).text());
   const catalog = await (await fetch(base + '/api/agent/site')).json();
-  assert.equal(catalog.pages.length, 13); assert.equal(catalog.routeFamilies.length, 9);
+  assert.equal(catalog.pages.length, 12); assert.equal(catalog.routeFamilies.length, 9);
   assert.equal(catalog.access.readOnly, true); assert.equal(catalog.access.mcpAvailable, false);
   const sitemap = await (await fetch(base + '/sitemap.xml')).text();
   for (const suffix of ['/match/1000?game=lol', '/match/1100?game=valorant', '/bracket/20', '/valorant/bracket/120']) assert.ok(sitemap.includes(suffix), `Missing sitemap URL ${suffix}`);
   assert.ok(!sitemap.includes('/login'));
+  assert.ok(!sitemap.includes('/worlds'));
+  assert.ok(!catalog.pages.some(page => page.path === '/worlds'));
   const robots = await (await fetch(base + '/robots.txt')).text();
   assert.match(robots, /Allow: \/api\/agent\//); assert.match(robots, /Disallow: \/api\//);
   const spec = await (await fetch(base + '/api/agent/openapi')).json();
@@ -167,7 +176,7 @@ try {
   }
   assert.equal((await fetch(base + '/api/agent/matches?game=bad')).status, 400);
   console.log('PASS: site-wide agent catalog, guide/content types, OpenAPI response schemas, page canonicals, JSON-LD, sitemap, noindex unavailable matches, spoiler safety and per-page freshness.');
-  console.log('PASS: 14 live routes, 4 non-live previews and both feeds; live-only primary/alternate controls with preserved data, agent guide, separate live/results, confirmed winners only, public schedule links, no personal controls, login removed, Worlds spoilers hidden, preserved calendar feed and zoom metadata. Browser layout/interaction checks are separate.');
+  console.log('PASS: 13 live routes, 4 non-live previews and both feeds; live-only primary/alternate controls with preserved data, agent guide, separate live/results, confirmed winners only, public schedule links, no personal controls, login removed, Worlds page and promotions retired; historical Worlds feed preserved, preserved calendar feed and zoom metadata. Browser layout/interaction checks are separate.');
 } finally {
   if (server && server.exitCode == null) { server.kill('SIGTERM'); await serverExit; }
   await rm(workspace, { recursive: true, force: true });
