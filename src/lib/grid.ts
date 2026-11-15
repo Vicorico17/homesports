@@ -42,12 +42,40 @@ export async function getGridFinal(): Promise<FinalFeed> {
     if (candidates.length !== 1 || data.allSeries.pageInfo.hasNextPage) return { ...empty, status: "pending" };
     id = candidates[0].node.id;
   }
+  return getGridSeries(id);
+}
+
+// Generic adapter for verified GRID series IDs. This does not grant publication
+// rights or premium entitlement, and never accepts a PandaScore ID implicitly.
+export async function getGridSeries(id: string): Promise<FinalFeed> {
+  const empty = { state: null, fetchedAt: null };
+  if (!process.env.GRID_API_KEY) return { ...empty, status: "not-configured" };
+  if (!/^\d{1,20}$/.test(id)) return { ...empty, status: "unavailable" };
   // New or restricted data models may omit extended fields. Preserve basic coverage.
   let data = await query<{ seriesState: unknown }>(seriesState, stateQuery(true), { id });
   const coverage = data ? "full" : "basic";
   data ??= await query<{ seriesState: unknown }>(seriesState, stateQuery(false), { id });
   // GRID returns { data: {} } before a series snapshot has been published.
   if (data && data.seriesState == null) return { ...empty, status: "pending" };
-  const state = normalizeFinalState(data?.seriesState);
+  const normalized = normalizeFinalState(data?.seriesState);
+  const state = normalized?.id === id ? normalized : null;
   return { state, coverage, status: state ? "ready" : "unavailable", fetchedAt: state ? new Date().toISOString() : null };
+}
+
+export type GridListing = { id: string; scheduledAt: string; tournament: string; teams: string[] };
+export type GridCatalog = { status: "ready" | "not-configured" | "unavailable"; series: GridListing[]; partial: boolean };
+export async function getGridCatalog(now = new Date()): Promise<GridCatalog> {
+  if (!process.env.GRID_API_KEY) return { status: "not-configured", series: [], partial: false };
+  const start = new Date(now); start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(start); end.setUTCDate(end.getUTCDate() + 3);
+  type Node = { id: string; startTimeScheduled: string; tournament?: { name?: string }; teams?: { baseInfo?: { name?: string } }[] };
+  const data = await query<{ allSeries?: { edges?: { node: Node }[]; pageInfo?: { hasNextPage?: boolean } } }>(central, `query PremiumSeries {
+    allSeries(filter: { startTimeScheduled: { gte: "${start.toISOString()}", lte: "${end.toISOString()}" } }, orderBy: StartTimeScheduled) {
+      edges { node { id startTimeScheduled tournament { name } teams { baseInfo { name } } } }
+      pageInfo { hasNextPage }
+    }
+  }`);
+  if (!data?.allSeries?.edges) return { status: "unavailable", series: [], partial: false };
+  const series = data.allSeries.edges.map(({ node }) => node).filter(node => /^\d{1,20}$/.test(node.id) && Number.isFinite(Date.parse(node.startTimeScheduled))).map(node => ({ id: node.id, scheduledAt: node.startTimeScheduled, tournament: node.tournament?.name || "Tournament", teams: (node.teams ?? []).map(t => t.baseInfo?.name).filter((v): v is string => !!v) }));
+  return { status: "ready", series: series.slice(0, 50), partial: !!data.allSeries.pageInfo?.hasNextPage || series.length > 50 };
 }

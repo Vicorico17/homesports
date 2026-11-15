@@ -38,3 +38,38 @@ test("GRID falls back to core fields and rejects failed responses without return
     if (id === undefined) delete process.env.GRID_WORLDS_FINAL_SERIES_ID; else process.env.GRID_WORLDS_FINAL_SERIES_ID = id;
   }
 });
+
+test("generic GRID adapter uses only the supplied verified series and validates IDs", async t => {
+  const { getGridSeries } = await import("./grid.ts");
+  const key = process.env.GRID_API_KEY;
+  process.env.GRID_API_KEY = "test-only-key";
+  const fetch = t.mock.method(globalThis, "fetch", async (url: unknown, init: RequestInit) => {
+    assert.equal(url, "https://api-op.grid.gg/live-data-feed/series-state/graphql");
+    assert.equal(JSON.parse(init.body as string).variables.id, "456");
+    return Response.json({ data: { seriesState: { id: "456", valid: true, teams: [{ id: "a" }, { id: "b" }] } } });
+  });
+  try {
+    assert.equal((await getGridSeries("not-an-id")).status, "unavailable");
+    assert.equal(fetch.mock.callCount(), 0);
+    assert.equal((await getGridSeries("456")).state?.id, "456");
+    assert.equal(fetch.mock.callCount(), 1);
+  } finally { if (key === undefined) delete process.env.GRID_API_KEY; else process.env.GRID_API_KEY = key; }
+});
+
+test("GRID catalog bounds listings and reports incomplete pagination", async t => {
+  const { getGridCatalog } = await import("./grid.ts");
+  const key = process.env.GRID_API_KEY;
+  process.env.GRID_API_KEY = "test-only-key";
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init: RequestInit) => {
+    const query = JSON.parse(init.body as string).query;
+    assert.match(query, /2026-11-15T00:00:00.000Z/);
+    assert.match(query, /2026-11-18T00:00:00.000Z/);
+    return Response.json({ data: { allSeries: { edges: Array.from({ length: 55 }, (_, i) => ({ node: { id: String(i + 1), startTimeScheduled: "2026-11-15T15:00:00Z", tournament: { name: "Cup" }, teams: [{ baseInfo: { name: "A" } }] } })), pageInfo: { hasNextPage: true } } } });
+  });
+  try {
+    const result = await getGridCatalog(new Date("2026-11-15T12:00:00Z"));
+    assert.equal(result.series.length, 50);
+    assert.equal(result.partial, true);
+    assert.equal(result.series[0].teams[0], "A");
+  } finally { if (key === undefined) delete process.env.GRID_API_KEY; else process.env.GRID_API_KEY = key; }
+});

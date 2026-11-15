@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./premium.css";
 import "./pickem.css";
 import "./league-filter.css";
 import "./countdown.css";

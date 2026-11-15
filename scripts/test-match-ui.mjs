@@ -89,6 +89,8 @@ try {
     const html = await page(route);
     assert.doesNotMatch(html, /href="\/calendar"/, `Duplicate Schedule navigation remains: ${route}`);
   }
+  const premium = await page('/premium'); assert.match(premium, /FREE FOR EVERYONE/); assert.doesNotMatch(premium, /Subscribe|checkout|Pay now/);
+  assert.equal((await fetch(base + '/premium/invalid')).status, 404);
   const agents = await page('/agents'); assert.match(agents, /For agents|Agent access|AI agents/i);
   const login = await page('/login'); assert.match(login, /No account needed/); assert.doesNotMatch(login, /<form|type="email"/);
   assert.equal((await fetch(base + '/worlds')).status, 404, 'Retired Worlds page remains public');
@@ -126,7 +128,7 @@ try {
   const guide = await (await fetch(base + '/llms-full.txt')).text();
   assert.equal(guide, await (await fetch(base + '/agents/index.md')).text());
   const catalog = await (await fetch(base + '/api/agent/site')).json();
-  assert.equal(catalog.pages.length, 12); assert.equal(catalog.routeFamilies.length, 9);
+  assert.equal(catalog.pages.length, 13); assert.equal(catalog.routeFamilies.length, 10);
   assert.equal(catalog.access.readOnly, true); assert.equal(catalog.access.mcpAvailable, false);
   const sitemap = await (await fetch(base + '/sitemap.xml')).text();
   for (const suffix of ['/match/1000?game=lol', '/match/1100?game=valorant', '/bracket/20', '/valorant/bracket/120']) assert.ok(sitemap.includes(suffix), `Missing sitemap URL ${suffix}`);

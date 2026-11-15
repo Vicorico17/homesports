@@ -1,0 +1,12 @@
+.premium-page { max-width:1100px; }
+.premium-page h1 { font-size:clamp(30px,5vw,58px); letter-spacing:-1.7px; line-height:1.1; overflow-wrap:anywhere; margin:20px 0; }
+.premium-page > p { max-width:740px; line-height:1.7; color:var(--dim); }
+.premium-page a { color:var(--lime); }
+.premium-page h2 { margin:32px 0 16px; }
+.premium-page .eyebrow { margin-top:32px; color:var(--lime); }
+.premium-game, .premium-stats, .premium-game section > details { border:1px solid var(--line); border-radius:8px; padding:14px; margin:12px 0; overflow-wrap:anywhere; }
+.premium-page summary { cursor:pointer; line-height:1.5; }
+.premium-page dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; }
+.premium-page dt { color:var(--dim); font-size:12px; }
+.premium-page dd { margin:6px 0; }
+@media(max-width:600px) { .premium-stats { padding:10px; } .premium-page dl { grid-template-columns:repeat(2,minmax(0,1fr)); } }

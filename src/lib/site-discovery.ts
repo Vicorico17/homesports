@@ -6,6 +6,7 @@ import { publicTournamentId } from "./public-links.ts";
 // One inventory for the guide, JSON catalog, sitemap and static page metadata.
 // Describes public capabilities, never browser-local progress or account data.
 export const publicPages = [
+  { path: "/premium", title: "Premium data · Free", description: "Bounded GRID fixture listing; Premium is a free richer-data category, not a paid plan.", reading: "Listing does not guarantee detailed coverage. Open a series to check available snapshots. Provider coverage can be partial." },
   { path: "/", title: "League of Legends matches", description: "Live and upcoming League of Legends series, ranked by editorial importance.", reading: "Server-rendered matchboard; filters and refresh use JavaScript. Use the match API for a bounded snapshot." },
   { path: "/live", title: "Live League of Legends matches", description: "Running League of Legends series and provider-listed broadcast links.", reading: "Status is a provider snapshot, not proof that a stream is currently online." },
   { path: "/results", title: "League of Legends results", description: "Recent completed League of Legends series.", reading: "Results page; may contain spoilers. API scores require include_results=true." },
@@ -21,6 +22,7 @@ export const publicPages = [
 ] as const;
 
 export const publicRouteFamilies = [
+  { path: "/premium/{id}", title: "Free GRID match details", description: "Available series, game and player statistics from GRID snapshots.", reading: "Use GRID IDs from the Premium listing, not PandaScore IDs. May reveal scores. Missing data is not estimated; snapshots may be delayed and rights remain with the provider." },
   { path: "/match/{id}?game={game}", title: "Match preview", description: "Teams, provider status, recent form, transparent win estimates when supported, tournament squads, and live stream links.", reading: "Use a match id and game returned by the match API. Tournament squads are not confirmed match starters; form estimates are uncalibrated heuristics. Detail data may be unavailable independently of the board." },
   { path: "/teams/{id}", title: "League of Legends team", description: "Provider-listed current team members and available match history.", reading: "Current membership is distinct from tournament squads. Missing or quarantined rosters are not proof of an empty roster." },
   { path: "/valorant/teams/{id}", title: "Valorant team", description: "Provider-listed current team members and available match history.", reading: "Current membership is distinct from tournament squads. Missing or quarantined rosters are not proof of an empty roster." },
