@@ -6,6 +6,7 @@ import { publicTournamentId } from "./public-links.ts";
 // One inventory for the guide, JSON catalog, sitemap and static page metadata.
 // Describes public capabilities, never browser-local progress or account data.
 export const publicPages = [
+  { path: "/premium/results", title: "Enhanced historical stats", description: "Free verified historical GRID match details.", reading: "Completed games, not live. Detail pages reveal scores; curated archive, not complete history." },
   { path: "/premium", title: "Premium data · Free", description: "Bounded GRID fixture listing; Premium is a free richer-data category, not a paid plan.", reading: "Listing does not guarantee detailed coverage. Open a series to check available snapshots. Provider coverage can be partial." },
   { path: "/", title: "League of Legends matches", description: "Live and upcoming League of Legends series, ranked by editorial importance.", reading: "Server-rendered matchboard; filters and refresh use JavaScript. Use the match API for a bounded snapshot." },
   { path: "/live", title: "Live League of Legends matches", description: "Running League of Legends series and provider-listed broadcast links.", reading: "Status is a provider snapshot, not proof that a stream is currently online." },

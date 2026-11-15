@@ -8,6 +8,7 @@ globalThis.fetch = async function fixtureFetch(input, init) {
   if (url.hostname === 'api-op.grid.gg') {
     if (url.pathname.includes('central-data')) return Response.json({ data: { allSeries: { edges: ['456', '3'].map(id => ({ node: { id, startTimeScheduled: atHour(1), tournament: { name: id === '3' ? 'GRID-TEST' : 'Fixture Cup' }, teams: [{ baseInfo: { name: 'Fixture A' } }, { baseInfo: { name: 'Fixture B' } }] } })), pageInfo: { hasNextPage: false } } } });
     const id = JSON.parse(init.body).variables.id;
+    if (id === '3012986') return Response.json({ data: { seriesState: { id, valid: true, started: true, finished: true, teams: [{ id: 'a', name: 'Gen.G Esports' }, { id: 'b', name: 'BILIBILI GAMING' }] } } });
     return Response.json({ data: { seriesState: { id, valid: true, started: true, finished: false, teams: [{ id: '1', name: 'Fixture A' }, { id: '2', name: 'Fixture B' }], games: [{ id: 'g1', sequenceNumber: 1, started: true, clock: { currentSeconds: 1234 }, teams: [{ id: '1', name: 'Fixture A', players: [{ id: 'p1', name: 'Fixture Player', character: { name: 'Ahri' } }] }] }] } } });
   }
   if (!['api.pandascore.co', 'lol.fandom.com'].includes(url.hostname)) throw Error(`Unexpected external request in UI test: ${url.hostname}`);

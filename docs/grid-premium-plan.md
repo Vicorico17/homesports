@@ -46,3 +46,9 @@ Gmail search located a registration verification message, not a current executed
 ## Production verification and guardrail
 
 The first production catalogue check on November 15 returned only series 3 and 74, both under `GRID-TEST`. Series 3 returned rich player/champion/clock statistics, but that is **test coverage**, not proof of live competition entitlement. Test/demo/sample tournaments are excluded from the Premium listing. Direct snapshots identified as tests are clearly labelled; unlisted snapshots are labelled unverified and a started snapshot is never called proof of a live match. Actual competition coverage and account display rights remain unverified. No paid services were enabled.
+
+## Historical access verified
+
+The current/upcoming window is **not** an entitlement audit. The existing verified final ID `3012986` now returns a completed, detailed Gen.G Esports–BILIBILI GAMING snapshot (1–3). The new `/premium/results` archive uses that known record, checking ID, completed state and both opponents before displaying it; Results links to the archive. This preserves the decision to retire the Worlds promotion while retaining useful historical stats. No PandaScore ID equivalence is guessed.
+
+The [new Riot Open Access programme](https://grid.gg/riot-open-access/) launched November 12, 2026 and explicitly includes LoL and VALORANT Central Data, Series State and Loopfeed. The older generic quick-start exclusion does not describe this programme. Current terms on that official page limit OA to non-commercial learning/experimentation and exclude betting/gambling. Free-to-view does not by itself establish commercial usage rights. Browser account verification could not be completed because the portal rendered blank; the production sensitive key was not exported or modified.

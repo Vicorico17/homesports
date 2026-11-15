@@ -93,6 +93,8 @@ try {
   assert.equal((await fetch(base + '/premium/invalid')).status, 404);
   assert.match(premium, /href="\/premium\/456"/); assert.doesNotMatch(premium, /href="\/premium\/3"|GRID-TEST/);
   const rich = await page('/premium/456'); assert.match(rich, /Ahri/); assert.match(rich, /20:34/); assert.match(rich, /ALWAYS FREE/);
+  const enhancedHistory = await page('/premium/results'); assert.match(enhancedHistory, /href="\/premium\/3012986"/);
+  const final = await page('/premium/3012986'); assert.match(final, /Verified historical competition/); assert.match(final, /Completed · Historical snapshot/);
   const providerTest = await page('/premium/3'); assert.match(providerTest, /PROVIDER TEST DATA/); assert.doesNotMatch(providerTest, /Live match ·/);
 
   const agents = await page('/agents'); assert.match(agents, /For agents|Agent access|AI agents/i);
@@ -132,7 +134,7 @@ try {
   const guide = await (await fetch(base + '/llms-full.txt')).text();
   assert.equal(guide, await (await fetch(base + '/agents/index.md')).text());
   const catalog = await (await fetch(base + '/api/agent/site')).json();
-  assert.equal(catalog.pages.length, 13); assert.equal(catalog.routeFamilies.length, 10);
+  assert.equal(catalog.pages.length, 14); assert.equal(catalog.routeFamilies.length, 10);
   assert.equal(catalog.access.readOnly, true); assert.equal(catalog.access.mcpAvailable, false);
   const sitemap = await (await fetch(base + '/sitemap.xml')).text();
   for (const suffix of ['/match/1000?game=lol', '/match/1100?game=valorant', '/bracket/20', '/valorant/bracket/120']) assert.ok(sitemap.includes(suffix), `Missing sitemap URL ${suffix}`);
